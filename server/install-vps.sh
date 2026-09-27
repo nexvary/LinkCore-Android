@@ -88,6 +88,8 @@ FGRCK_COMMAND_TTL_SECONDS=180
 FGRCK_CONTROLLER_ONLINE_SECONDS=90
 FGRCK_COMMAND_REDELIVER_SECONDS=30
 FGRCK_MAX_COMMAND_ATTEMPTS=5
+FGRCK_SIGNED_COMMAND_TTL_SECONDS=120
+FGRCK_SIGNED_COMMAND_CLOCK_SKEW_SECONDS=90
 FGRCK_SMTP_HOST=
 FGRCK_SMTP_PORT=587
 FGRCK_SMTP_USER=
@@ -143,7 +145,7 @@ log "Deployment complete"
 
 cat <<EOF
 
-FG Machines Link Cloud is running.
+FG Machines Link Cloud 0.3.0 Zero-Trust Relay is running.
 
 Panel:
   https://$DOMAIN/panel
@@ -159,7 +161,8 @@ Next:
   2. Create a Controller and copy its one-time key into the FG Link Android controller.
   3. Register the MTTL device.
   4. Create subscriber share codes.
-  5. After a subscriber accepts, assign outlets 1-2 or 3-4 from the panel.
+  5. Open the Android app once so its non-exportable signing key is bound.
+  6. Electrical commands are accepted only when signed by that bound phone.
 
 Important:
   - PostgreSQL is not exposed publicly.
