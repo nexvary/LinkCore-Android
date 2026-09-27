@@ -571,6 +571,7 @@ Leistung %3$.1f W · Energie %4$.3f kWh · Temperatur %5$d°C
 
     <string name="free_remote_title">ZeroTier Fernzugriff</string>
     <string name="free_remote_note">Primärer Fernzugriffsmodus, solange FG Cloud angehalten ist. Kein FG-VPS und kein monatlicher Cloud-Dienst erforderlich.</string>
+    <string name="connectivity_stack_status">LAN: AKTIV   •   ZeroTier: PRIMÄRER FERNZUGRIFF   •   FG Cloud: ANGEHALTEN</string>
     <string name="free_remote_mode_label">Kostenloser Zugriffsmodus</string>
     <string name="free_remote_host_hint">Private ZeroTier-IP des Controller-Telefons / Router-Gateways</string>
     <string name="free_remote_apply">Kostenlosen Fernzugriff verwenden</string>
