@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import hmac
 import os
@@ -16,6 +18,9 @@ from typing import Generator, Literal
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
@@ -48,6 +53,8 @@ COMMAND_TTL_SECONDS = max(30, int(os.getenv("FGRCK_COMMAND_TTL_SECONDS", "180"))
 CONTROLLER_ONLINE_SECONDS = max(30, int(os.getenv("FGRCK_CONTROLLER_ONLINE_SECONDS", "90")))
 COMMAND_REDELIVER_SECONDS = max(10, int(os.getenv("FGRCK_COMMAND_REDELIVER_SECONDS", "30")))
 MAX_COMMAND_ATTEMPTS = max(1, int(os.getenv("FGRCK_MAX_COMMAND_ATTEMPTS", "5")))
+SIGNED_COMMAND_TTL_SECONDS = max(30, min(300, int(os.getenv("FGRCK_SIGNED_COMMAND_TTL_SECONDS", "120"))))
+SIGNED_COMMAND_CLOCK_SKEW_SECONDS = max(30, min(300, int(os.getenv("FGRCK_SIGNED_COMMAND_CLOCK_SKEW_SECONDS", "90"))))
 SMTP_HOST = os.getenv("FGRCK_SMTP_HOST", "").strip()
 SMTP_PORT = max(1, int(os.getenv("FGRCK_SMTP_PORT", "587")))
 SMTP_USER = os.getenv("FGRCK_SMTP_USER", "").strip()
@@ -140,6 +147,22 @@ class OutletPolicy(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class DeviceBinding(Base):
+    __tablename__ = "device_bindings"
+    __table_args__ = (
+        UniqueConstraint("controller_id", "key_id", name="uq_device_binding_controller_key"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    controller_id: Mapped[str] = mapped_column(ForeignKey("controllers.id"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    key_id: Mapped[str] = mapped_column(String(64), index=True)
+    public_key_b64: Mapped[str] = mapped_column(String(1024))
+    label: Mapped[str] = mapped_column(String(120), default="")
+    hardware_backed: Mapped[bool] = mapped_column(Boolean, default=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ShareInvite(Base):
     __tablename__ = "share_invites"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -170,6 +193,20 @@ class Command(Base):
     acked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ack_detail: Mapped[str] = mapped_column(String(512), default="")
+
+
+class CommandProof(Base):
+    __tablename__ = "command_proofs"
+    __table_args__ = (UniqueConstraint("nonce", name="uq_command_proof_nonce"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    command_id: Mapped[str] = mapped_column(ForeignKey("commands.id"), unique=True, index=True)
+    key_id: Mapped[str] = mapped_column(String(64), index=True)
+    nonce: Mapped[str] = mapped_column(String(128), index=True)
+    issued_at: Mapped[int] = mapped_column(Integer)
+    valid_until: Mapped[int] = mapped_column(Integer)
+    signature_b64: Mapped[str] = mapped_column(String(1024))
+    canonical_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class TelemetrySnapshot(Base):
@@ -361,6 +398,92 @@ def device_payload(device: Device, role: str, allowed_outlets: list[int] | None 
     }
 
 
+def signed_command_canonical(
+    controller_id: str,
+    mac: str,
+    outlet: int,
+    state: str,
+    issued_at: int,
+    valid_until: int,
+    nonce: str,
+    key_id: str,
+) -> str:
+    return "\n".join([
+        "FGLINK-CMD-V1",
+        controller_id,
+        normalize_mac(mac),
+        str(int(outlet)),
+        state.lower(),
+        str(int(issued_at)),
+        str(int(valid_until)),
+        nonce,
+        key_id.lower(),
+    ])
+
+
+def verify_device_binding_signature(
+    db: Session,
+    user: User,
+    device: Device,
+    outlet: int,
+    state: str,
+    key_id: str,
+    nonce: str,
+    issued_at: int,
+    valid_until: int,
+    signature_b64: str,
+) -> str:
+    now = int(utcnow().timestamp())
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", key_id or ""):
+        raise HTTPException(status_code=422, detail="Invalid device binding key id")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{20,128}", nonce or ""):
+        raise HTTPException(status_code=422, detail="Invalid command nonce")
+    if issued_at > now + SIGNED_COMMAND_CLOCK_SKEW_SECONDS:
+        raise HTTPException(status_code=401, detail="Signed command timestamp is in the future")
+    if issued_at < now - SIGNED_COMMAND_CLOCK_SKEW_SECONDS:
+        raise HTTPException(status_code=401, detail="Signed command timestamp is too old")
+    if valid_until <= now:
+        raise HTTPException(status_code=401, detail="Signed command expired")
+    if valid_until < issued_at or valid_until - issued_at > SIGNED_COMMAND_TTL_SECONDS:
+        raise HTTPException(status_code=422, detail="Signed command validity window is invalid")
+
+    existing_nonce = db.scalar(select(CommandProof).where(CommandProof.nonce == nonce))
+    if existing_nonce is not None:
+        raise HTTPException(status_code=409, detail="Signed command nonce already used")
+
+    binding = db.scalar(select(DeviceBinding).where(
+        DeviceBinding.controller_id == device.controller_id,
+        DeviceBinding.user_id == user.id,
+        DeviceBinding.key_id == key_id.lower(),
+        DeviceBinding.revoked.is_(False),
+    ))
+    if binding is None:
+        raise HTTPException(status_code=403, detail="This phone installation is not bound to the controller")
+
+    canonical = signed_command_canonical(
+        device.controller_id,
+        device.mac,
+        outlet,
+        state,
+        issued_at,
+        valid_until,
+        nonce,
+        key_id,
+    )
+    try:
+        public_der = base64.b64decode(binding.public_key_b64, validate=True)
+        public_key = serialization.load_der_public_key(public_der)
+        if not isinstance(public_key, ec.EllipticCurvePublicKey):
+            raise ValueError("not_ec")
+        if not isinstance(public_key.curve, ec.SECP256R1):
+            raise ValueError("wrong_curve")
+        signature = base64.b64decode(signature_b64, validate=True)
+        public_key.verify(signature, canonical.encode("utf-8"), ec.ECDSA(hashes.SHA256()))
+    except (ValueError, TypeError, binascii.Error, InvalidSignature) as error:
+        raise HTTPException(status_code=401, detail="Invalid device-bound command signature") from error
+    return canonical
+
+
 def queue_command(
     db: Session,
     user: User,
@@ -368,6 +491,13 @@ def queue_command(
     outlet: int,
     target_state: str,
     source: str,
+    *,
+    key_id: str,
+    nonce: str,
+    issued_at: int,
+    valid_until: int,
+    signature_b64: str,
+    canonical: str,
 ) -> Command:
     if outlet < 1 or outlet > 4:
         raise HTTPException(status_code=422, detail="Outlet must be 1..4")
@@ -376,6 +506,7 @@ def queue_command(
     require_device_role(db, user, device, "control")
     if outlet not in allowed_outlets_for(db, user, device):
         raise HTTPException(status_code=403, detail=f"Outlet {outlet} is not assigned to this account")
+
     command = Command(
         controller_id=device.controller_id,
         device_id=device.id,
@@ -383,10 +514,21 @@ def queue_command(
         outlet=outlet,
         state=target_state,
         source=source[:32],
-        expires_at=utcnow() + timedelta(seconds=COMMAND_TTL_SECONDS),
+        expires_at=datetime.fromtimestamp(valid_until, timezone.utc),
     )
     db.add(command)
-    audit(db, "command_queued", user.id, device.id, f"{source}:outlet={outlet},state={target_state}")
+    db.flush()
+    db.add(CommandProof(
+        command_id=command.id,
+        key_id=key_id.lower(),
+        nonce=nonce,
+        issued_at=issued_at,
+        valid_until=valid_until,
+        signature_b64=signature_b64,
+        canonical_sha256=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    ))
+    audit(db, "signed_command_queued", user.id, device.id,
+          f"{source}:outlet={outlet},state={target_state},key={key_id[:12]}")
     db.commit()
     db.refresh(command)
     return command
@@ -404,6 +546,13 @@ class LoginRequest(BaseModel):
 
 class ControllerCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
+
+
+class DeviceBindingRequest(BaseModel):
+    key_id: str = Field(min_length=64, max_length=64)
+    public_key_b64: str = Field(min_length=80, max_length=1024)
+    label: str = Field(default="", max_length=120)
+    hardware_backed: bool = False
 
 
 class DeviceRegisterRequest(BaseModel):
@@ -481,7 +630,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=APP_NAME,
-    version="0.2.1",
+    version="0.3.0",
     description="Account, sharing, outlet authorization and outbound-controller relay for FG Machines Link.",
     lifespan=lifespan,
 )
@@ -492,7 +641,7 @@ app.include_router(panel_router)
 @app.get("/healthz")
 @app.get(f"{API_PREFIX}/health")
 def health() -> dict:
-    return {"ok": True, "service": "fg-link-cloud", "version": "0.2.1"}
+    return {"ok": True, "service": "fg-link-cloud", "version": "0.3.0"}
 
 
 @app.post(f"{API_PREFIX}/auth/register", status_code=201)
