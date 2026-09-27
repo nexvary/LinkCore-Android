@@ -256,7 +256,8 @@ def test_per_subscriber_outlet_split_and_panel():
         panel = client.get("/panel")
         assert panel.status_code == 200
         assert "FG Machines Link" in panel.text
-        assert "لوحة التحكم السحابية" in panel.text
+        assert "Operations Console" in panel.text
+        assert "إدارة أجهزة FG Link" in panel.text
 
         owner = register(client, "split-owner@example.com")
         guest = register(client, "split-guest@example.com")
