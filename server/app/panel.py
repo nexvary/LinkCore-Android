@@ -113,7 +113,7 @@ PANEL_HTML = r"""<!doctype html>
     </nav>
 
     <div class="sideMeta">
-      <div class="sideMetaRow"><span><span class="statusDot"></span><span id="sideStatus">Cloud API</span></span><span>0.2.1</span></div>
+      <div class="sideMetaRow"><span><span class="statusDot"></span><span id="sideStatus">Cloud API</span></span><span>0.3.0</span></div>
       <div class="sideActions">
         <button class="btn ghost small" id="langBtn" onclick="toggleLang()">English</button>
         <button class="btn danger small hidden" id="logoutBtn" onclick="logout()">خروج</button>
@@ -151,7 +151,7 @@ PANEL_HTML = r"""<!doctype html>
       <div class="content">
         <section id="overview" class="section">
           <div class="pageIntro">
-            <div><h2 id="overviewTitle">الحالة التشغيلية</h2><p id="overviewSub">حالة الخادم، الأجهزة، والاتصالات المسجلة.</p></div>
+            <div><h2 id="overviewTitle">الحالة التشغيلية</h2><p id="overviewSub">الخادم وسيط نقل فقط؛ أوامر الكهرباء لا تُنفّذ دون توقيع الهاتف المرتبط.</p></div>
             <span class="badge online"><span class="statusDot"></span><span id="liveBadge">SYSTEM OPERATIONAL</span></span>
           </div>
 
@@ -159,7 +159,7 @@ PANEL_HTML = r"""<!doctype html>
             <div class="kpi"><div class="kpiHead"><span id="kpiServer">Cloud API</span><span>01</span></div><div class="kpiValue ok" id="serverState">ONLINE</div><div class="kpiSub" id="serverSub">HTTPS gateway available</div></div>
             <div class="kpi"><div class="kpiHead"><span id="kpiDevices">Registered Devices</span><span>02</span></div><div class="kpiValue" id="deviceCount">0</div><div class="kpiSub" id="deviceSub">MTTL nodes</div></div>
             <div class="kpi"><div class="kpiHead"><span id="kpiOnline">Online Now</span><span>03</span></div><div class="kpiValue ok" id="onlineCount">0</div><div class="kpiSub" id="onlineSub">Heartbeat within threshold</div></div>
-            <div class="kpi"><div class="kpiHead"><span id="kpiVersion">Platform Version</span><span>04</span></div><div class="kpiValue amber">0.2.1</div><div class="kpiSub">FG Link Cloud</div></div>
+            <div class="kpi"><div class="kpiHead"><span id="kpiVersion">Platform Version</span><span>04</span></div><div class="kpiValue amber">0.3.0</div><div class="kpiSub">FG Link Cloud</div></div>
           </div>
         </section>
 
@@ -224,10 +224,10 @@ const T={
  ar:{
   dir:"rtl",langBtn:"English",logout:"خروج",consoleTitle:"Operations Console",consoleSub:"إدارة أجهزة FG Link والمشتركين وصلاحيات المخارج",
   navOverview:"نظرة عامة",navDevices:"الأجهزة",navInfra:"البنية التحتية",authTitle:"تسجيل الدخول",authText:"جلسة إدارية مشفرة عبر FG Link Cloud",
-  email:"البريد الإلكتروني",password:"كلمة المرور",login:"دخول",register:"إنشاء حساب",overviewTitle:"الحالة التشغيلية",overviewSub:"حالة الخادم، الأجهزة، والاتصالات المسجلة.",
+  email:"البريد الإلكتروني",password:"كلمة المرور",login:"دخول",register:"إنشاء حساب",overviewTitle:"الحالة التشغيلية",overviewSub:"الخادم وسيط نقل فقط؛ أوامر الكهرباء تتطلب توقيع الهاتف المرتبط.",
   liveBadge:"النظام يعمل",kpiServer:"الخادم",kpiDevices:"الأجهزة المسجلة",kpiOnline:"متصل الآن",kpiVersion:"إصدار المنصة",
   serverSub:"بوابة HTTPS متاحة",deviceSub:"أجهزة MTTL",onlineSub:"Heartbeat ضمن النطاق",devicesTitle:"تشغيل الأجهزة",devicesHint:"التحكم متاح فقط للمخارج المخصصة لهذا الحساب.",
-  refresh:"تحديث البيانات",thDevice:"الجهاز",thStatus:"الحالة",thRole:"الصلاحية",thPorts:"المخارج",thControl:"التحكم",thManage:"الإدارة",
+  refresh:"تحديث البيانات",thDevice:"الجهاز",thStatus:"الحالة",thRole:"الصلاحية",thPorts:"المخارج",thControl:"Zero Trust",thManage:"الإدارة",
   noDevices:"لا توجد أجهزة مسجلة.",connected:"متصل",offline:"غير متصل",owner:"مالك",control:"تحكم",admin:"مدير",view:"مشاهدة",
   manage:"المشتركون",infraTitle:"تجهيز البنية التحتية",infraSub:"إنشاء Controller وربط أجهزة MTTL بالخادم.",controllerName:"اسم Controller",
   createController:"إنشاء Controller",deviceName:"اسم الجهاز",room:"الغرفة / الموقع",registerDevice:"تسجيل الجهاز",shareTitle:"إدارة صلاحيات المشتركين",
@@ -236,10 +236,10 @@ const T={
  en:{
   dir:"ltr",langBtn:"العربية",logout:"Sign out",consoleTitle:"Operations Console",consoleSub:"FG Link device, subscriber and outlet authorization management",
   navOverview:"Overview",navDevices:"Devices",navInfra:"Infrastructure",authTitle:"Sign in",authText:"Administrative session through FG Link Cloud",
-  email:"Email",password:"Password",login:"Sign in",register:"Create account",overviewTitle:"Operational Status",overviewSub:"Server, device and connectivity state.",
+  email:"Email",password:"Password",login:"Sign in",register:"Create account",overviewTitle:"Operational Status",overviewSub:"The VPS is relay-only; electrical commands require the bound phone signature.",
   liveBadge:"SYSTEM OPERATIONAL",kpiServer:"Cloud API",kpiDevices:"Registered Devices",kpiOnline:"Online Now",kpiVersion:"Platform Version",
   serverSub:"HTTPS gateway available",deviceSub:"MTTL nodes",onlineSub:"Heartbeat within threshold",devicesTitle:"Device Operations",devicesHint:"Controls appear only for outlets assigned to this account.",
-  refresh:"Refresh Data",thDevice:"Device",thStatus:"Status",thRole:"Role",thPorts:"Outlets",thControl:"Control",thManage:"Management",
+  refresh:"Refresh Data",thDevice:"Device",thStatus:"Status",thRole:"Role",thPorts:"Outlets",thControl:"Zero Trust",thManage:"Management",
   noDevices:"No devices registered.",connected:"Online",offline:"Offline",owner:"Owner",control:"Control",admin:"Admin",view:"View",
   manage:"Subscribers",infraTitle:"Infrastructure Provisioning",infraSub:"Create a controller and attach MTTL devices to the server.",controllerName:"Controller Name",
   createController:"Create Controller",deviceName:"Device Name",room:"Room / Location",registerDevice:"Register Device",shareTitle:"Subscriber Access Control",
@@ -294,7 +294,7 @@ function renderDevices(){
  body.innerHTML=devices.map(d=>{
   const allowed=new Set(d.allowed_outlets||[]);
   const ports=[1,2,3,4].map(n=>'<span class="port '+(allowed.has(n)?"allowed":"denied")+'">'+n+'</span>').join("");
-  const controls=[1,2,3,4].map(n=>'<button class="powerBtn on" '+(allowed.has(n)?"":"disabled")+' title="'+tr("outlet")+' '+n+' ON" onclick="setOutlet(\''+d.mac+'\','+n+',\'on\')">'+n+'↑</button><button class="powerBtn off" '+(allowed.has(n)?"":"disabled")+' title="'+tr("outlet")+' '+n+' OFF" onclick="setOutlet(\''+d.mac+'\','+n+',\'off\')">'+n+'↓</button>').join("");
+  const controls='<span class="badge role">ANDROID KEY SIGNATURE</span>';
   const canAdmin=d.role==="owner"||d.role==="admin";
   return '<tr><td><span class="deviceName">'+esc(d.name||"MTTL-W01")+'</span><span class="subline">'+esc(d.room||"—")+'</span><span class="mono">'+esc(d.mac)+'</span></td>'+
     '<td><span class="badge '+(d.connected?"online":"offline")+'">'+(d.connected?tr("connected"):tr("offline"))+'</span></td>'+
@@ -304,7 +304,7 @@ function renderDevices(){
     '<td>'+(canAdmin?'<button class="btn small" onclick="openShares(\''+d.mac+'\')">'+tr("manage")+'</button>':'—')+'</td></tr>'
  }).join("")
 }
-async function setOutlet(mac,n,state){try{await api("/api/v1/devices/"+mac+"/outlets/"+n+"?state="+state,{method:"POST"});toast("OK · "+mac+" · "+n+" · "+state)}catch(e){toast(e.message,true)}}
+async function setOutlet(){toast("Zero-trust mode: electrical commands must be signed by the bound Android app.",true)}
 async function createController(){
  try{const d=await api("/api/v1/controllers",{method:"POST",body:JSON.stringify({name:controllerName.value})});controllerId.value=d.controller_id;sessionStorage.setItem("fgpanel_controller_id",d.controller_id);controllerResult.textContent="Controller ID:\n"+d.controller_id+"\n\nController Key (shown once):\n"+d.controller_key+"\n\n"+d.note;controllerResult.classList.remove("hidden")}catch(e){toast(e.message,true)}
 }
