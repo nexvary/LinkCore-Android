@@ -133,9 +133,11 @@ function authError(m){const e=document.getElementById("authMsg");e.textContent=m
 function logout(){token="";sessionStorage.removeItem("fgpanel_token");showAuth()}
 async function refreshAll(){
  try{
-  const [h,d]=await Promise.all([api("/healthz"),api("/api/v1/devices")]);devices=d.devices||[];
+  const [h,d,ctls]=await Promise.all([api("/healthz"),api("/api/v1/devices"),api("/api/v1/controllers")]);devices=d.devices||[];
   serverState.textContent=h.ok?"ONLINE":"ERROR";serverState.className="metric "+(h.ok?"ok":"bad");
-  deviceCount.textContent=devices.length;onlineCount.textContent=devices.filter(x=>x.connected).length;renderDevices()
+  deviceCount.textContent=devices.length;onlineCount.textContent=devices.filter(x=>x.connected).length;
+  const cs=ctls.controllers||[];if(!controllerId.value&&cs.length){controllerId.value=cs[0].controller_id;sessionStorage.setItem("fgpanel_controller_id",controllerId.value)}
+  renderDevices()
  }catch(e){toast(e.message,true)}
 }
 function roleLabel(r){return tr(r)||r}
