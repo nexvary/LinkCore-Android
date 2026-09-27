@@ -249,3 +249,104 @@ def test_email_alert_targets_authenticated_account(monkeypatch):
             "subject": "FG Link alert",
             "body": "MTTL-W01 offline",
         }
+
+
+def test_per_subscriber_outlet_split_and_panel():
+    with TestClient(app) as client:
+        panel = client.get("/panel")
+        assert panel.status_code == 200
+        assert "FG Machines Link" in panel.text
+        assert "لوحة التحكم السحابية" in panel.text
+
+        owner = register(client, "split-owner@example.com")
+        guest = register(client, "split-guest@example.com")
+
+        controller = client.post(
+            "/api/v1/controllers",
+            json={"name": "Split Controller"},
+            headers=auth(owner["access_token"]),
+        )
+        assert controller.status_code == 201, controller.text
+        controller_id = controller.json()["controller_id"]
+
+        listed_controllers = client.get(
+            "/api/v1/controllers",
+            headers=auth(owner["access_token"]),
+        )
+        assert listed_controllers.status_code == 200
+        assert listed_controllers.json()["controllers"][0]["controller_id"] == controller_id
+
+        device = client.post(
+            "/api/v1/devices",
+            json={
+                "controller_id": controller_id,
+                "mac": "A1:B2:C3:D4:E5:F6",
+                "name": "Split Strip",
+                "room": "Two Subscribers",
+            },
+            headers=auth(owner["access_token"]),
+        )
+        assert device.status_code == 201, device.text
+        assert device.json()["allowed_outlets"] == [1, 2, 3, 4]
+
+        invite = client.post(
+            "/api/v1/devices/A1B2C3D4E5F6/shares/invites",
+            json={"role": "control", "expires_hours": 24},
+            headers=auth(owner["access_token"]),
+        )
+        accepted = client.post(
+            "/api/v1/shares/accept",
+            json={"code": invite.json()["code"]},
+            headers=auth(guest["access_token"]),
+        )
+        assert accepted.status_code == 200
+
+        guest_id = guest["user_id"]
+        policy = client.put(
+            f"/api/v1/devices/A1B2C3D4E5F6/shares/{guest_id}/outlets",
+            json={"outlets": [1, 2]},
+            headers=auth(owner["access_token"]),
+        )
+        assert policy.status_code == 200, policy.text
+        assert policy.json()["allowed_outlets"] == [1, 2]
+
+        guest_devices = client.get(
+            "/api/v1/devices",
+            headers=auth(guest["access_token"]),
+        )
+        assert guest_devices.status_code == 200
+        assert guest_devices.json()["devices"][0]["allowed_outlets"] == [1, 2]
+
+        allowed = client.post(
+            "/api/v1/devices/A1B2C3D4E5F6/outlets/2?state=on",
+            headers=auth(guest["access_token"]),
+        )
+        assert allowed.status_code == 200, allowed.text
+
+        denied = client.post(
+            "/api/v1/devices/A1B2C3D4E5F6/outlets/3?state=on",
+            headers=auth(guest["access_token"]),
+        )
+        assert denied.status_code == 403
+
+        voice_off = client.post(
+            "/api/v1/voice/intent",
+            json={"mac": "A1B2C3D4E5F6", "action": "off", "all_outlets": True},
+            headers=auth(guest["access_token"]),
+        )
+        assert voice_off.status_code == 200, voice_off.text
+        assert len(voice_off.json()["command_ids"]) == 2
+
+        shares = client.get(
+            "/api/v1/devices/A1B2C3D4E5F6/shares",
+            headers=auth(owner["access_token"]),
+        )
+        assert shares.status_code == 200
+        guest_row = next(item for item in shares.json()["shares"] if item["user_id"] == guest_id)
+        assert guest_row["allowed_outlets"] == [1, 2]
+
+        owner_still_controls_3 = client.post(
+            "/api/v1/devices/A1B2C3D4E5F6/outlets/3?state=off",
+            headers=auth(owner["access_token"]),
+        )
+        assert owner_still_controls_3.status_code == 200

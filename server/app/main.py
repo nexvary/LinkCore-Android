@@ -34,6 +34,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
+from .panel import router as panel_router
+
 
 APP_NAME = "FG Machines RCK Cloud"
 API_PREFIX = "/api/v1"
@@ -125,6 +127,16 @@ class DeviceAccess(Base):
     device_id: Mapped[str] = mapped_column(ForeignKey("devices.id"), index=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     role: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OutletPolicy(Base):
+    __tablename__ = "outlet_policies"
+    __table_args__ = (UniqueConstraint("device_id", "user_id", name="uq_outlet_policy_user"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    device_id: Mapped[str] = mapped_column(ForeignKey("devices.id"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    outlet_mask: Mapped[int] = mapped_column(Integer, default=15)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -256,6 +268,22 @@ def require_device_role(db: Session, user: User, device: Device, minimum: str) -
     return role
 
 
+def allowed_outlets_for(db: Session, user: User, device: Device) -> list[int]:
+    role = role_for(db, user, device)
+    if role == "owner":
+        return [1, 2, 3, 4]
+    if role is None or ROLE_RANK.get(role, 0) < ROLE_RANK["control"]:
+        return []
+    policy = db.scalar(select(OutletPolicy).where(
+        OutletPolicy.device_id == device.id,
+        OutletPolicy.user_id == user.id,
+    ))
+    # Existing control/admin shares had no outlet policy. Preserve their
+    # all-outlet behavior until the owner explicitly saves a split policy.
+    mask = 15 if policy is None else max(0, min(15, int(policy.outlet_mask)))
+    return [outlet for outlet in range(1, 5) if mask & (1 << (outlet - 1))]
+
+
 def device_by_mac(db: Session, mac: str) -> Device:
     normalized = normalize_mac(mac)
     device = db.scalar(select(Device).where(Device.mac == normalized))
@@ -319,7 +347,7 @@ def deliver_alert_email(recipient: str, subject: str, body: str) -> None:
         raise HTTPException(status_code=502, detail="SMTP delivery failed") from error
 
 
-def device_payload(device: Device, role: str) -> dict:
+def device_payload(device: Device, role: str, allowed_outlets: list[int] | None = None) -> dict:
     return {
         "mac": device.mac,
         "name": device.name,
@@ -328,6 +356,8 @@ def device_payload(device: Device, role: str) -> dict:
         "connected": is_device_online(device),
         "last_seen": int(device.last_seen.timestamp() * 1000) if device.last_seen else 0,
         "role": role,
+        "allowed_outlets": allowed_outlets if allowed_outlets is not None
+        else ([1, 2, 3, 4] if role == "owner" else []),
     }
 
 
@@ -344,6 +374,8 @@ def queue_command(
     if target_state not in {"on", "off"}:
         raise HTTPException(status_code=422, detail="State must be on or off")
     require_device_role(db, user, device, "control")
+    if outlet not in allowed_outlets_for(db, user, device):
+        raise HTTPException(status_code=403, detail=f"Outlet {outlet} is not assigned to this account")
     command = Command(
         controller_id=device.controller_id,
         device_id=device.id,
@@ -432,6 +464,10 @@ class EmailAlertRequest(BaseModel):
     body: str = Field(min_length=1, max_length=2000)
 
 
+class OutletPolicyRequest(BaseModel):
+    outlets: list[int] = Field(default_factory=list, max_length=4)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if ENVIRONMENT == "production":
@@ -445,16 +481,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=APP_NAME,
-    version="0.1.0",
-    description="Account, sharing and outbound-controller relay for FG Machines RCK.",
+    version="0.2.0",
+    description="Account, sharing, outlet authorization and outbound-controller relay for FG Machines Link.",
     lifespan=lifespan,
 )
 
 
+app.include_router(panel_router)
+
 @app.get("/healthz")
 @app.get(f"{API_PREFIX}/health")
 def health() -> dict:
-    return {"ok": True, "service": "fg-rck-cloud", "version": "0.1.0"}
+    return {"ok": True, "service": "fg-rck-cloud", "version": "0.2.0"}
 
 
 @app.post(f"{API_PREFIX}/auth/register", status_code=201)
@@ -525,6 +563,31 @@ def create_controller(
     }
 
 
+@app.get(f"{API_PREFIX}/controllers")
+def list_controllers(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    controllers = list(db.scalars(
+        select(Controller)
+        .where(Controller.owner_user_id == user.id)
+        .order_by(Controller.created_at.asc())
+    ))
+    now = utcnow()
+    rows = []
+    for controller in controllers:
+        seen = controller.last_seen
+        if seen is not None and seen.tzinfo is None:
+            seen = seen.replace(tzinfo=timezone.utc)
+        rows.append({
+            "controller_id": controller.id,
+            "name": controller.name,
+            "online": bool(seen and seen >= now - timedelta(seconds=CONTROLLER_ONLINE_SECONDS)),
+            "last_seen": int(seen.timestamp() * 1000) if seen else 0,
+        })
+    return {"controllers": rows}
+
+
 @app.post(f"{API_PREFIX}/devices", status_code=201)
 def register_device(
     body: DeviceRegisterRequest,
@@ -558,7 +621,7 @@ def register_device(
     audit(db, "device_registered", user.id, device.id, mac)
     db.commit()
     db.refresh(device)
-    return device_payload(device, "owner")
+    return device_payload(device, "owner", [1, 2, 3, 4])
 
 
 @app.get(f"{API_PREFIX}/devices")
@@ -571,7 +634,16 @@ def list_devices(
     if shared_ids:
         clause = or_(clause, Device.id.in_(shared_ids))
     devices = list(db.scalars(select(Device).where(clause).order_by(Device.created_at.asc())))
-    return {"devices": [device_payload(device, role_for(db, user, device) or "view") for device in devices]}
+    return {
+        "devices": [
+            device_payload(
+                device,
+                role_for(db, user, device) or "view",
+                allowed_outlets_for(db, user, device),
+            )
+            for device in devices
+        ]
+    }
 
 
 @app.post(f"{API_PREFIX}/devices/{{mac}}/outlets/{{outlet}}")
@@ -678,11 +750,26 @@ def accept_share(
             access.role = invite.role
         else:
             db.add(DeviceAccess(device_id=device.id, user_id=user.id, role=invite.role))
+    if device.owner_user_id != user.id:
+        creator = db.get(User, invite.created_by_user_id)
+        inherited = allowed_outlets_for(db, creator, device) if creator else []
+        initial_outlets = [] if invite.role == "view" else inherited
+        mask = sum(1 << (outlet - 1) for outlet in initial_outlets)
+        policy = db.scalar(select(OutletPolicy).where(
+            OutletPolicy.device_id == device.id,
+            OutletPolicy.user_id == user.id,
+        ))
+        if policy is None:
+            db.add(OutletPolicy(device_id=device.id, user_id=user.id, outlet_mask=mask))
+        else:
+            policy.outlet_mask = mask
+
     invite.accepted_by_user_id = user.id
     invite.accepted_at = utcnow()
     audit(db, "share_accepted", user.id, device.id, invite.role)
     db.commit()
-    return device_payload(device, "owner" if device.owner_user_id == user.id else invite.role)
+    effective_role = "owner" if device.owner_user_id == user.id else invite.role
+    return device_payload(device, effective_role, allowed_outlets_for(db, user, device))
 
 
 @app.get(f"{API_PREFIX}/devices/{{mac}}/shares")
@@ -694,13 +781,77 @@ def list_shares(
     device = device_by_mac(db, mac)
     require_device_role(db, user, device, "admin")
     owner = db.get(User, device.owner_user_id)
-    rows = [{"user_id": owner.id, "email": owner.email, "role": "owner"}] if owner else []
+    rows = [{
+        "user_id": owner.id,
+        "email": owner.email,
+        "role": "owner",
+        "allowed_outlets": [1, 2, 3, 4],
+    }] if owner else []
     accesses = list(db.scalars(select(DeviceAccess).where(DeviceAccess.device_id == device.id)))
     for access in accesses:
         account = db.get(User, access.user_id)
         if account:
-            rows.append({"user_id": account.id, "email": account.email, "role": access.role})
+            rows.append({
+                "user_id": account.id,
+                "email": account.email,
+                "role": access.role,
+                "allowed_outlets": allowed_outlets_for(db, account, device),
+            })
     return {"shares": rows}
+
+
+@app.put(f"{API_PREFIX}/devices/{{mac}}/shares/{{target_user_id}}/outlets")
+def set_share_outlets(
+    mac: str,
+    target_user_id: str,
+    body: OutletPolicyRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    device = device_by_mac(db, mac)
+    actor_role = require_device_role(db, user, device, "admin")
+    if target_user_id == device.owner_user_id:
+        raise HTTPException(status_code=422, detail="Owner always controls outlets 1..4")
+
+    access = db.scalar(select(DeviceAccess).where(
+        DeviceAccess.device_id == device.id,
+        DeviceAccess.user_id == target_user_id,
+    ))
+    if access is None:
+        raise HTTPException(status_code=404, detail="Share not found")
+    if access.role == "admin" and actor_role != "owner":
+        raise HTTPException(status_code=403, detail="Only the owner can change Admin outlet access")
+
+    outlets = sorted(set(int(item) for item in body.outlets))
+    if actor_role != "owner":
+        actor_allowed = set(allowed_outlets_for(db, user, device))
+        if any(item not in actor_allowed for item in outlets):
+            raise HTTPException(status_code=403, detail="Admin cannot grant outlets outside their own scope")
+    if any(item < 1 or item > 4 for item in outlets):
+        raise HTTPException(status_code=422, detail="Outlets must be between 1 and 4")
+    if access.role == "view" and outlets:
+        raise HTTPException(status_code=422, detail="View role cannot control outlets")
+
+    mask = sum(1 << (outlet - 1) for outlet in outlets)
+    policy = db.scalar(select(OutletPolicy).where(
+        OutletPolicy.device_id == device.id,
+        OutletPolicy.user_id == target_user_id,
+    ))
+    if policy is None:
+        policy = OutletPolicy(device_id=device.id, user_id=target_user_id, outlet_mask=mask)
+        db.add(policy)
+    else:
+        policy.outlet_mask = mask
+
+    audit(
+        db,
+        "outlet_policy_updated",
+        user.id,
+        device.id,
+        f"target={target_user_id},outlets={','.join(str(item) for item in outlets) or 'none'}",
+    )
+    db.commit()
+    return {"ok": True, "user_id": target_user_id, "allowed_outlets": outlets}
 
 
 @app.delete(f"{API_PREFIX}/devices/{{mac}}/shares/{{target_user_id}}")
@@ -722,6 +873,12 @@ def revoke_share(
         raise HTTPException(status_code=404, detail="Share not found")
     if access.role == "admin" and actor_role != "owner":
         raise HTTPException(status_code=403, detail="Only the owner can revoke Admin")
+    policy = db.scalar(select(OutletPolicy).where(
+        OutletPolicy.device_id == device.id,
+        OutletPolicy.user_id == target_user_id,
+    ))
+    if policy is not None:
+        db.delete(policy)
     db.delete(access)
     audit(db, "share_revoked", user.id, device.id, target_user_id)
     db.commit()
@@ -738,9 +895,11 @@ def voice_intent(
     require_device_role(db, user, device, "control")
     outlets: list[int]
     if body.all_outlets:
+        outlets = allowed_outlets_for(db, user, device)
+        if not outlets:
+            raise HTTPException(status_code=403, detail="No controllable outlets are assigned to this account")
         if body.action == "on" and not body.confirm_all_on:
             raise HTTPException(status_code=409, detail="Explicit confirmation is required for ALL ON")
-        outlets = [1, 2, 3, 4]
     elif body.outlet is not None:
         outlets = [body.outlet]
     else:

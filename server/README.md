@@ -1,6 +1,6 @@
-# FG Machines RCK Cloud / VPS
+# FG Machines Link Cloud / VPS
 
-This directory contains the first deployable cloud backend for FG Machines RCK.
+This directory contains the deployable cloud backend and web control panel for FG Machines Link.
 
 The design is intentionally **local-first**:
 
@@ -22,6 +22,21 @@ FG Machines RCK Cloud / VPS
 The VPS never talks directly to the MTTL-W01. The Android controller keeps the
 verified local protocol and polls the VPS for authorized commands. This avoids
 opening the phone's local TCP/HTTP ports to the public Internet.
+
+## Implemented in v0.2
+
+- Responsive bilingual Arabic/English web panel at `/panel`.
+- Device and controller overview with online/offline state.
+- Browser-based outlet control through the same authenticated cloud command queue.
+- Subscriber share management from the panel.
+- Per-subscriber outlet authorization. A single four-outlet strip can be split, for example:
+  - Subscriber A: outlets 1 + 2
+  - Subscriber B: outlets 3 + 4
+- Outlet authorization is enforced by the API, not only hidden in the UI.
+- Delegated Admin accounts cannot grant outlets outside their own assigned scope.
+- One-command Ubuntu/Debian VPS installer: `server/install-vps.sh`.
+- Installer generates independent PostgreSQL/JWT/token secrets, keeps PostgreSQL private, starts Docker Compose, and verifies API health.
+- Caddy terminates HTTPS automatically after DNS points to the VPS.
 
 ## Implemented in v0.1
 
@@ -77,29 +92,43 @@ PYTHONPATH=server pytest -q server/tests
 
 ## VPS deployment
 
-Requirements:
+Recommended target: Ubuntu 22.04/24.04 or Debian 12 with a DNS A/AAAA record
+already pointing the selected domain to the VPS. Public inbound TCP 80/443 is
+required for HTTPS; PostgreSQL remains on the private Docker network.
 
-- Ubuntu/Debian VPS with Docker Engine + Docker Compose plugin.
-- A DNS A/AAAA record pointing `FGRCK_DOMAIN` to the VPS.
-- TCP 80/443 allowed by the firewall.
-- No public PostgreSQL port.
+### One-command installer
+
+From a fresh server:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nexvary/LinkCore-Android/main/server/install-vps.sh -o /tmp/install-fg-link.sh
+sudo bash /tmp/install-fg-link.sh
+```
+
+The installer asks for the domain and ACME email, installs Docker/Compose when
+needed, clones the project to `/opt/fg-link-cloud`, generates production
+secrets, starts the stack and performs a local API health check.
+
+After DNS and TLS are ready:
+
+```text
+https://YOUR-DOMAIN/panel
+https://YOUR-DOMAIN/healthz
+https://YOUR-DOMAIN/docs
+```
+
+For a manual deployment, copy `.env.example` to `.env`, replace every
+`CHANGE_ME`, then run:
 
 ```bash
 cd server
-cp .env.example .env
-
-# Edit .env and use independent random secrets.
-# Example generator:
-openssl rand -base64 48
-
+docker compose config
 docker compose pull
-docker compose build
-docker compose up -d
+docker compose up -d --build
 docker compose ps
 ```
 
-Caddy obtains/renews the public TLS certificate automatically after DNS is
-correct and ports 80/443 are reachable.
+Caddy obtains and renews the public TLS certificate automatically.
 
 ## Android controller integration
 
@@ -135,3 +164,22 @@ The Bearer value for the VPS is an account JWT rather than a LAN sharing token.
 `POST /api/v1/voice/intent` is the neutral internal bridge. Alexa/Google
 adapters can be added later without changing the MTTL controller protocol.
 Vendor account linking/OAuth is not claimed or enabled yet.
+
+
+## Splitting one strip between two subscribers
+
+The cloud authorization layer supports outlet-scoped access without changing
+the verified four-relay MTTL protocol. The owner first shares the device with
+each subscriber. After the share code is accepted, open **Subscribers & outlet
+access** in `/panel` and save the allowed outlets for each account.
+
+Example:
+
+```text
+Subscriber A -> outlets 1, 2
+Subscriber B -> outlets 3, 4
+Owner        -> outlets 1, 2, 3, 4
+```
+
+A denied outlet is rejected with HTTP 403 by the server even if a client tries
+to call the command endpoint directly.
