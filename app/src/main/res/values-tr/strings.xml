@@ -228,8 +228,8 @@
     <string name="share_token_waiting">Yeni erişim tokeni burada görünür. Kopyalamak için dokunun.</string>
     <string name="revoke_access">Seçili erişimi iptal et</string>
     <string name="sharing_security_note">View yalnızca okur. Control prizleri anahtarlar. Admin Control yetkisini içerir. API’yi güvenilir LAN/VPN veya HTTPS arkasında kullanın.</string>
-    <string name="remote_control_title">Bulut / Uzaktan Kontrol</string>
-    <string name="remote_control_note">Şimdi LAN/VPN kontrolü için Cihaz Paylaşım Kodunu yapıştırın veya daha sonra HTTPS VPS uç noktası ekleyin. Yerel kontrol varsayılan kalır.</string>
+    <string name="remote_control_title">LAN / ZeroTier Uzaktan Kontrol</string>
+    <string name="remote_control_note">Yerel ağ veya ZeroTier üzerinden cihaz paylaşım kodunu kullanın. FG Cloud beklemededir ve normal kullanım için gerekli değildir.</string>
     <string name="remote_endpoint_hint">Uzak uç nokta, ör. https://rck.example.com</string>
     <string name="remote_token_hint">Erişim tokeni</string>
     <string name="remote_connect">Bağlan / Yenile</string>
@@ -528,15 +528,16 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="event_voice_command">Sesli komut</string>
 
 
-    <string name="cloud_account_title">FG Machines Cloud / VPS</string>
-    <string name="cloud_account_note">İsteğe bağlıdır. Yerel MTTL-W01 kontrolü, zamanlayıcılar ve otomasyon VPS olmadan çalışmaya devam eder. HTTPS sunucunuz hazır olduğunda giriş yapın.</string>
+    <string name="cloud_account_title">FG Cloud — Beklemede</string>
+    <string name="cloud_account_note">FG Cloud uygulamada hazırdır ancak barındırılan hizmet daha sonra başlatılana kadar bilinçli olarak beklemededir. LAN varsayılandır; ZeroTier VPS olmadan uzaktan erişim sağlar.</string>
     <string name="cloud_endpoint_hint">HTTPS VPS adresi</string>
     <string name="cloud_email_hint">Bulut hesabı e-postası</string>
     <string name="cloud_password_hint">Bulut hesabı parolası</string>
     <string name="cloud_register">Hesap oluştur</string>
     <string name="cloud_login">Giriş yap</string>
-    <string name="cloud_sync_enable">Bu telefonu bulut denetleyici rölesi olarak etkinleştir</string>
-    <string name="cloud_status_signed_out">Giriş yapılmadı. Yerel kontrol çalışmaya devam ediyor.</string>
+    <string name="cloud_sync_enable">FG Cloud rölesini etkinleştir</string>
+    <string name="cloud_status_signed_out">FG Cloud etkin değil. LAN ve ZeroTier kullanılabilir.</string>
+    <string name="cloud_status_on_hold">FG Cloud etkin değil. LAN ve ZeroTier kullanılabilir.</string>
     <string name="cloud_status_missing">HTTPS VPS adresini, e-postayı ve parolayı girin.</string>
     <string name="cloud_status_authenticating">Buluta bağlanılıyor…</string>
     <string name="cloud_status_ready">Bulut hesabı kaydedildi. Hazır olduğunuzda denetleyici rölesini etkinleştirin.</string>
@@ -568,8 +569,8 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="controller_watchdog_retry">Yerel denetleyici yeniden başlatılamadı: %1$s</string>
     <string name="controller_port_in_use">Yerel denetleyici bağlantı noktası %1$d zaten kullanımda. Aynı anda yalnızca bir FG Link / FG Machines RCK denetleyici uygulaması çalıştırın.</string>
 
-    <string name="free_remote_title">Ücretsiz Uzaktan Erişim</string>
-    <string name="free_remote_note">VPS veya aylık abonelik gerekmez. Denetleyici telefonda ZeroTier ya da ZeroTier/OpenWrt yönlendirici ağ geçidi seçin.</string>
+    <string name="free_remote_title">ZeroTier Uzaktan Erişim</string>
+    <string name="free_remote_note">FG Cloud beklemedeyken birincil uzaktan erişim yöntemidir. FG VPS veya aylık bulut hizmeti gerekmez.</string>
     <string name="free_remote_mode_label">Ücretsiz erişim modu</string>
     <string name="free_remote_host_hint">Denetleyici telefonun / yönlendirici ağ geçidinin özel ZeroTier IP\'si</string>
     <string name="free_remote_apply">Ücretsiz uzaktan erişimi kullan</string>
