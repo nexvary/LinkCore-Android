@@ -571,6 +571,7 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
 
     <string name="free_remote_title">ZeroTier Uzaktan Erişim</string>
     <string name="free_remote_note">FG Cloud beklemedeyken birincil uzaktan erişim yöntemidir. FG VPS veya aylık bulut hizmeti gerekmez.</string>
+    <string name="connectivity_stack_status">LAN: AKTİF   •   ZeroTier: ANA UZAK ERİŞİM   •   FG Cloud: BEKLEMEDE</string>
     <string name="free_remote_mode_label">Ücretsiz erişim modu</string>
     <string name="free_remote_host_hint">Denetleyici telefonun / yönlendirici ağ geçidinin özel ZeroTier IP\'si</string>
     <string name="free_remote_apply">Ücretsiz uzaktan erişimi kullan</string>
