@@ -579,6 +579,7 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
 
     <string name="free_remote_title">ZeroTier Remote Access</string>
     <string name="free_remote_note">Primary remote mode while FG Cloud is on hold. No FG VPS or monthly cloud service is required.</string>
+    <string name="connectivity_stack_status">LAN: ACTIVE   •   ZeroTier: PRIMARY REMOTE   •   FG Cloud: ON HOLD</string>
     <string name="free_remote_mode_label">Free access mode</string>
     <string name="free_remote_host_hint">Private ZeroTier IP of controller phone / router gateway</string>
     <string name="free_remote_apply">Use free remote path</string>
