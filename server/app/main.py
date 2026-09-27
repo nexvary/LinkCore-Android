@@ -761,6 +761,14 @@ def bind_controller_installation(
         existing.hardware_backed = body.hardware_backed
         existing.revoked = False
 
+    other_bindings = list(db.scalars(select(DeviceBinding).where(
+        DeviceBinding.controller_id == controller.id,
+        DeviceBinding.key_id != key_id,
+        DeviceBinding.revoked.is_(False),
+    )))
+    for other in other_bindings:
+        other.revoked = True
+
     audit(db, "device_binding_registered", user.id, detail=f"{controller.id}:{key_id[:16]}")
     db.commit()
     return {
@@ -811,11 +819,18 @@ def list_controllers(
         seen = controller.last_seen
         if seen is not None and seen.tzinfo is None:
             seen = seen.replace(tzinfo=timezone.utc)
+        binding = db.scalar(select(DeviceBinding).where(
+            DeviceBinding.controller_id == controller.id,
+            DeviceBinding.revoked.is_(False),
+        ))
         rows.append({
             "controller_id": controller.id,
             "name": controller.name,
             "online": bool(seen and seen >= now - timedelta(seconds=CONTROLLER_ONLINE_SECONDS)),
             "last_seen": int(seen.timestamp() * 1000) if seen else 0,
+            "installation_fingerprint": binding.key_id if binding else "",
+            "hardware_backed": bool(binding.hardware_backed) if binding else False,
+            "device_bound": binding is not None,
         })
     return {"controllers": rows}
 
