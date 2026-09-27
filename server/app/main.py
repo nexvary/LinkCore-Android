@@ -37,7 +37,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 from .panel import router as panel_router
 
 
-APP_NAME = "FG Machines RCK Cloud"
+APP_NAME = "FG Machines Link Cloud"
 API_PREFIX = "/api/v1"
 ENVIRONMENT = os.getenv("FGRCK_ENV", "development").strip().lower()
 DATABASE_URL = os.getenv("FGRCK_DATABASE_URL", "sqlite+pysqlite:///./fg_rck_cloud.db")
@@ -481,7 +481,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title=APP_NAME,
-    version="0.2.0",
+    version="0.2.1",
     description="Account, sharing, outlet authorization and outbound-controller relay for FG Machines Link.",
     lifespan=lifespan,
 )
@@ -492,7 +492,7 @@ app.include_router(panel_router)
 @app.get("/healthz")
 @app.get(f"{API_PREFIX}/health")
 def health() -> dict:
-    return {"ok": True, "service": "fg-rck-cloud", "version": "0.2.0"}
+    return {"ok": True, "service": "fg-link-cloud", "version": "0.2.1"}
 
 
 @app.post(f"{API_PREFIX}/auth/register", status_code=201)

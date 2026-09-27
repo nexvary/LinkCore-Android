@@ -23,6 +23,12 @@ The VPS never talks directly to the MTTL-W01. The Android controller keeps the
 verified local protocol and polls the VPS for authorized commands. This avoids
 opening the phone's local TCP/HTTP ports to the public Internet.
 
+## Implemented in v0.2.1
+
+- Enterprise Operations Console redesign: fixed operations navigation, compact KPI strip, dense device table, explicit outlet authorization indicators and separated infrastructure provisioning.
+- Arabic RTL and English LTR are retained across the new console.
+- Cloud service identity and health endpoint now report version 0.2.1.
+
 ## Implemented in v0.2
 
 - Responsive bilingual Arabic/English web panel at `/panel`.
