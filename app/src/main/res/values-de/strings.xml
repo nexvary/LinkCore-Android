@@ -228,8 +228,8 @@
     <string name="share_token_waiting">Neues Zugriffstoken erscheint hier. Antippen zum Kopieren.</string>
     <string name="revoke_access">Ausgewählten Zugriff widerrufen</string>
     <string name="sharing_security_note">View liest nur. Control schaltet Ausgänge. Admin enthält Control. API nur in vertrauenswürdigem LAN/VPN oder hinter HTTPS verwenden.</string>
-    <string name="remote_control_title">Cloud / Fernsteuerung</string>
-    <string name="remote_control_note">Jetzt einen Gerätefreigabe-Code für LAN/VPN einfügen oder später einen HTTPS-VPS-Endpunkt konfigurieren. Lokale Steuerung bleibt Standard.</string>
+    <string name="remote_control_title">LAN / ZeroTier Fernsteuerung</string>
+    <string name="remote_control_note">Nutzen Sie einen Gerätefreigabe-Code über LAN oder ZeroTier. FG Cloud ist angehalten und für den normalen Betrieb nicht erforderlich.</string>
     <string name="remote_endpoint_hint">Remote-Endpunkt, z. B. https://rck.example.com</string>
     <string name="remote_token_hint">Zugriffstoken</string>
     <string name="remote_connect">Verbinden / Aktualisieren</string>
@@ -528,15 +528,16 @@ Leistung %3$.1f W · Energie %4$.3f kWh · Temperatur %5$d°C
     <string name="event_voice_command">Sprachbefehl</string>
 
 
-    <string name="cloud_account_title">FG Machines Cloud / VPS</string>
-    <string name="cloud_account_note">Optional. Lokale MTTL-W01-Steuerung, Timer und Automationen funktionieren weiterhin ohne VPS. Erst anmelden, wenn der HTTPS-Server bereit ist.</string>
+    <string name="cloud_account_title">FG Cloud — Angehalten</string>
+    <string name="cloud_account_note">FG Cloud ist bereits in der App integriert, bleibt aber bis zum späteren Start des gehosteten Dienstes bewusst deaktiviert. LAN ist Standard; ZeroTier ermöglicht Fernzugriff ohne VPS.</string>
     <string name="cloud_endpoint_hint">HTTPS-VPS-Adresse</string>
     <string name="cloud_email_hint">E-Mail des Cloud-Kontos</string>
     <string name="cloud_password_hint">Passwort des Cloud-Kontos</string>
     <string name="cloud_register">Konto erstellen</string>
     <string name="cloud_login">Anmelden</string>
-    <string name="cloud_sync_enable">Dieses Telefon als Cloud-Controller-Relay aktivieren</string>
-    <string name="cloud_status_signed_out">Nicht angemeldet. Lokale Steuerung bleibt aktiv.</string>
+    <string name="cloud_sync_enable">FG Cloud Relay aktivieren</string>
+    <string name="cloud_status_signed_out">FG Cloud ist inaktiv. LAN und ZeroTier bleiben verfügbar.</string>
+    <string name="cloud_status_on_hold">FG Cloud ist inaktiv. LAN und ZeroTier bleiben verfügbar.</string>
     <string name="cloud_status_missing">HTTPS-VPS-Adresse, E-Mail und Passwort eingeben.</string>
     <string name="cloud_status_authenticating">Verbindung zur Cloud…</string>
     <string name="cloud_status_ready">Cloud-Konto gespeichert. Relay auf dem Controller-Telefon bei Bedarf aktivieren.</string>
@@ -568,8 +569,8 @@ Leistung %3$.1f W · Energie %4$.3f kWh · Temperatur %5$d°C
     <string name="controller_watchdog_retry">Neustart des lokalen Controllers fehlgeschlagen: %1$s</string>
     <string name="controller_port_in_use">Der lokale Controller-Port %1$d wird bereits verwendet. Es darf nur eine FG Link / FG Machines RCK Controller-App gleichzeitig ausgeführt werden.</string>
 
-    <string name="free_remote_title">Kostenloser Fernzugriff</string>
-    <string name="free_remote_note">Kein VPS und kein Monatsabo erforderlich. Wählen Sie ZeroTier auf dem Controller-Telefon oder ein ZeroTier/OpenWrt-Router-Gateway.</string>
+    <string name="free_remote_title">ZeroTier Fernzugriff</string>
+    <string name="free_remote_note">Primärer Fernzugriffsmodus, solange FG Cloud angehalten ist. Kein FG-VPS und kein monatlicher Cloud-Dienst erforderlich.</string>
     <string name="free_remote_mode_label">Kostenloser Zugriffsmodus</string>
     <string name="free_remote_host_hint">Private ZeroTier-IP des Controller-Telefons / Router-Gateways</string>
     <string name="free_remote_apply">Kostenlosen Fernzugriff verwenden</string>
