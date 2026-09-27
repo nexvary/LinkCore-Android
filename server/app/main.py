@@ -563,6 +563,31 @@ def create_controller(
     }
 
 
+@app.get(f"{API_PREFIX}/controllers")
+def list_controllers(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    controllers = list(db.scalars(
+        select(Controller)
+        .where(Controller.owner_user_id == user.id)
+        .order_by(Controller.created_at.asc())
+    ))
+    now = utcnow()
+    rows = []
+    for controller in controllers:
+        seen = controller.last_seen
+        if seen is not None and seen.tzinfo is None:
+            seen = seen.replace(tzinfo=timezone.utc)
+        rows.append({
+            "controller_id": controller.id,
+            "name": controller.name,
+            "online": bool(seen and seen >= now - timedelta(seconds=CONTROLLER_ONLINE_SECONDS)),
+            "last_seen": int(seen.timestamp() * 1000) if seen else 0,
+        })
+    return {"controllers": rows}
+
+
 @app.post(f"{API_PREFIX}/devices", status_code=201)
 def register_device(
     body: DeviceRegisterRequest,
