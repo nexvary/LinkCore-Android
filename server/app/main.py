@@ -387,8 +387,8 @@ def deliver_alert_email(recipient: str, subject: str, body: str) -> None:
 def device_payload(device: Device, role: str, allowed_outlets: list[int] | None = None) -> dict:
     return {
         "mac": device.mac,
-        "name": device.name,
-        "room": device.room,
+        "name": "",
+        "room": "",
         "firmware": device.firmware,
         "connected": is_device_online(device),
         "last_seen": int(device.last_seen.timestamp() * 1000) if device.last_seen else 0,
@@ -712,6 +712,88 @@ def create_controller(
     }
 
 
+@app.put(f"{API_PREFIX}/controllers/{{controller_id}}/device-binding")
+def bind_controller_installation(
+    controller_id: str,
+    body: DeviceBindingRequest,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    controller = db.get(Controller, controller_id)
+    if controller is None or controller.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Controller owner access required")
+
+    key_id = body.key_id.lower()
+    try:
+        public_der = base64.b64decode(body.public_key_b64, validate=True)
+        digest = hashlib.sha256(public_der).hexdigest()
+        public_key = serialization.load_der_public_key(public_der)
+        if not isinstance(public_key, ec.EllipticCurvePublicKey):
+            raise ValueError("not_ec")
+        if not isinstance(public_key.curve, ec.SECP256R1):
+            raise ValueError("wrong_curve")
+    except (ValueError, TypeError, binascii.Error) as error:
+        raise HTTPException(status_code=422, detail="Invalid P-256 public key") from error
+    if digest != key_id:
+        raise HTTPException(status_code=422, detail="Key id does not match public-key fingerprint")
+
+    existing = db.scalar(select(DeviceBinding).where(
+        DeviceBinding.controller_id == controller.id,
+        DeviceBinding.key_id == key_id,
+    ))
+    if existing is None:
+        existing = DeviceBinding(
+            controller_id=controller.id,
+            user_id=user.id,
+            key_id=key_id,
+            public_key_b64=body.public_key_b64,
+            label=body.label.strip(),
+            hardware_backed=body.hardware_backed,
+            revoked=False,
+        )
+        db.add(existing)
+    else:
+        if existing.user_id != user.id:
+            raise HTTPException(status_code=409, detail="Device binding belongs to another account")
+        existing.public_key_b64 = body.public_key_b64
+        existing.label = body.label.strip()
+        existing.hardware_backed = body.hardware_backed
+        existing.revoked = False
+
+    audit(db, "device_binding_registered", user.id, detail=f"{controller.id}:{key_id[:16]}")
+    db.commit()
+    return {
+        "ok": True,
+        "controller_id": controller.id,
+        "installation_fingerprint": key_id,
+        "hardware_backed": existing.hardware_backed,
+        "private_key_exported": False,
+    }
+
+
+@app.delete(f"{API_PREFIX}/controllers/{{controller_id}}/device-binding/{{key_id}}")
+def revoke_controller_installation(
+    controller_id: str,
+    key_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    controller = db.get(Controller, controller_id)
+    if controller is None or controller.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Controller owner access required")
+    binding = db.scalar(select(DeviceBinding).where(
+        DeviceBinding.controller_id == controller.id,
+        DeviceBinding.key_id == key_id.lower(),
+        DeviceBinding.user_id == user.id,
+    ))
+    if binding is None:
+        raise HTTPException(status_code=404, detail="Device binding not found")
+    binding.revoked = True
+    audit(db, "device_binding_revoked", user.id, detail=f"{controller.id}:{key_id[:16]}")
+    db.commit()
+    return {"ok": True, "installation_fingerprint": binding.key_id, "revoked": True}
+
+
 @app.get(f"{API_PREFIX}/controllers")
 def list_controllers(
     user: User = Depends(current_user),
@@ -752,8 +834,8 @@ def register_device(
         if existing.owner_user_id != user.id:
             raise HTTPException(status_code=409, detail="Device is already claimed")
         existing.controller_id = controller.id
-        existing.name = body.name.strip()
-        existing.room = body.room.strip()
+        existing.name = ""
+        existing.room = ""
         existing.firmware = body.firmware.strip()
         device = existing
     else:
@@ -761,8 +843,8 @@ def register_device(
             owner_user_id=user.id,
             controller_id=controller.id,
             mac=mac,
-            name=body.name.strip(),
-            room=body.room.strip(),
+            name="",
+            room="",
             firmware=body.firmware.strip(),
         )
         db.add(device)
@@ -800,12 +882,50 @@ def compatible_set_outlet(
     mac: str,
     outlet: int,
     state_value: str = Query(alias="state"),
+    x_fg_key_id: str | None = Header(default=None, alias="X-FG-Key-Id"),
+    x_fg_nonce: str | None = Header(default=None, alias="X-FG-Nonce"),
+    x_fg_issued_at: int | None = Header(default=None, alias="X-FG-Issued-At"),
+    x_fg_valid_until: int | None = Header(default=None, alias="X-FG-Valid-Until"),
+    x_fg_signature: str | None = Header(default=None, alias="X-FG-Signature"),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     device = device_by_mac(db, mac)
-    command = queue_command(db, user, device, outlet, state_value.lower(), "app")
-    return {"ok": True, "command_id": command.id, "status": command.status}
+    require_device_role(db, user, device, "control")
+    state = state_value.lower()
+    if None in (x_fg_key_id, x_fg_nonce, x_fg_issued_at, x_fg_valid_until, x_fg_signature):
+        raise HTTPException(
+            status_code=428,
+            detail="A device-bound Android Keystore signature is required",
+        )
+    canonical = verify_device_binding_signature(
+        db,
+        user,
+        device,
+        outlet,
+        state,
+        str(x_fg_key_id),
+        str(x_fg_nonce),
+        int(x_fg_issued_at),
+        int(x_fg_valid_until),
+        str(x_fg_signature),
+    )
+    command = queue_command(
+        db, user, device, outlet, state, "signed-app",
+        key_id=str(x_fg_key_id),
+        nonce=str(x_fg_nonce),
+        issued_at=int(x_fg_issued_at),
+        valid_until=int(x_fg_valid_until),
+        signature_b64=str(x_fg_signature),
+        canonical=canonical,
+    )
+    return {
+        "ok": True,
+        "command_id": command.id,
+        "status": command.status,
+        "zero_trust": True,
+        "installation_fingerprint": str(x_fg_key_id).lower(),
+    }
 
 
 @app.get(f"{API_PREFIX}/history/{{mac}}")
@@ -1040,21 +1160,16 @@ def voice_intent(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> dict:
+    # Cloud-side voice command generation is intentionally disabled in
+    # zero-trust mode. Voice actions must be converted to individually signed
+    # outlet commands on the bound Android installation so a compromised VPS
+    # cannot fabricate an executable relay command.
     device = device_by_mac(db, body.mac)
     require_device_role(db, user, device, "control")
-    outlets: list[int]
-    if body.all_outlets:
-        outlets = allowed_outlets_for(db, user, device)
-        if not outlets:
-            raise HTTPException(status_code=403, detail="No controllable outlets are assigned to this account")
-        if body.action == "on" and not body.confirm_all_on:
-            raise HTTPException(status_code=409, detail="Explicit confirmation is required for ALL ON")
-    elif body.outlet is not None:
-        outlets = [body.outlet]
-    else:
-        raise HTTPException(status_code=422, detail="Specify outlet or all_outlets")
-    commands = [queue_command(db, user, device, outlet, body.action, "voice") for outlet in outlets]
-    return {"ok": True, "command_ids": [item.id for item in commands]}
+    raise HTTPException(
+        status_code=428,
+        detail="Zero-trust mode requires device-bound signed outlet commands",
+    )
 
 
 @app.post(f"{API_PREFIX}/controllers/{{controller_id}}/heartbeat")
@@ -1164,6 +1279,11 @@ def poll_commands(
         command.status = "delivered"
         command.delivered_at = now
         command.attempts += 1
+        proof = db.scalar(select(CommandProof).where(CommandProof.command_id == command.id))
+        if proof is None:
+            command.status = "failed"
+            command.ack_detail = "missing_device_bound_signature"
+            continue
         payload.append({
             "command_id": command.id,
             "mac": device.mac,
@@ -1172,6 +1292,15 @@ def poll_commands(
             "source": command.source,
             "attempt": command.attempts,
             "expires_at": command.expires_at.isoformat(),
+            "proof": {
+                "version": 1,
+                "key_id": proof.key_id,
+                "nonce": proof.nonce,
+                "issued_at": proof.issued_at,
+                "valid_until": proof.valid_until,
+                "signature": proof.signature_b64,
+                "canonical_sha256": proof.canonical_sha256,
+            },
         })
     controller.last_seen = now
     db.commit()
