@@ -11,7 +11,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Optional client for another FG Machines RCK controller exposed through a
@@ -20,12 +22,24 @@ import java.util.List;
 public final class RemoteApiClient {
     private final String baseUrl;
     private final String token;
+    private final DeviceBoundSigner signer;
+    private final String controllerId;
 
     public RemoteApiClient(String baseUrl, String token) {
+        this(baseUrl, token, null, "");
+    }
+
+    public RemoteApiClient(
+            String baseUrl,
+            String token,
+            DeviceBoundSigner signer,
+            String controllerId) {
         String normalized = baseUrl == null ? "" : baseUrl.trim();
         while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
         this.baseUrl = normalized;
         this.token = token == null ? "" : token.trim();
+        this.signer = signer;
+        this.controllerId = controllerId == null ? "" : controllerId.trim();
     }
 
     public List<RemoteDevice> listDevices() throws IOException {
@@ -49,9 +63,32 @@ public final class RemoteApiClient {
 
     public void setOutlet(String mac, int outlet, boolean on) throws IOException {
         if (outlet < 1 || outlet > 4) throw new IOException("Outlet must be 1..4");
+        if (signer == null || controllerId.isEmpty()) {
+            throw new IOException("This remote command requires the device-bound FG Link identity");
+        }
         String safeMac = FleetStore.normalizeMac(mac);
-        request("POST", "/api/v1/devices/" + safeMac + "/outlets/" + outlet
-                + "?state=" + (on ? "on" : "off"));
+        String state = on ? "on" : "off";
+        long issuedAt = System.currentTimeMillis() / 1000L;
+        long validUntil = issuedAt + 90L;
+        String nonce = DeviceBoundSigner.newNonce();
+        try {
+            String keyId = signer.keyId();
+            String canonical = DeviceBoundSigner.canonical(
+                    controllerId, safeMac, outlet, state, issuedAt, validUntil, nonce, keyId);
+            String signature = signer.sign(canonical);
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("X-FG-Key-Id", keyId);
+            headers.put("X-FG-Nonce", nonce);
+            headers.put("X-FG-Issued-At", String.valueOf(issuedAt));
+            headers.put("X-FG-Valid-Until", String.valueOf(validUntil));
+            headers.put("X-FG-Signature", signature);
+            request("POST", "/api/v1/devices/" + safeMac + "/outlets/" + outlet
+                    + "?state=" + state, headers);
+        } catch (IOException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IOException("Unable to sign remote command with Android Keystore", error);
+        }
     }
 
     public JSONObject history(String mac, int hours) throws IOException {
@@ -64,6 +101,11 @@ public final class RemoteApiClient {
     }
 
     private JSONObject request(String method, String path) throws IOException {
+        return request(method, path, java.util.Collections.emptyMap());
+    }
+
+    private JSONObject request(String method, String path, Map<String, String> extraHeaders)
+            throws IOException {
         EndpointSecurity.validateRemoteEndpoint(baseUrl);
         URL url = new URL(baseUrl + path);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -72,6 +114,13 @@ public final class RemoteApiClient {
         connection.setReadTimeout(7000);
         connection.setRequestProperty("Accept", "application/json");
         if (!token.isEmpty()) connection.setRequestProperty("Authorization", "Bearer " + token);
+        if (extraHeaders != null) {
+            for (Map.Entry<String, String> header : extraHeaders.entrySet()) {
+                if (header.getKey() != null && header.getValue() != null) {
+                    connection.setRequestProperty(header.getKey(), header.getValue());
+                }
+            }
+        }
         connection.setDoInput(true);
         if ("POST".equals(method)) {
             connection.setDoOutput(true);

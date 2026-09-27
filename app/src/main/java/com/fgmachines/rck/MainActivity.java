@@ -2726,11 +2726,19 @@ public class MainActivity extends AppCompatActivity {
         remoteStatus.setText(R.string.remote_sending);
         commandWorker.execute(() -> {
             try {
-                new RemoteApiClient(endpoint, token).setOutlet(device.mac, outlet, on);
+                SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+                String controllerId = prefs.getString(
+                        CloudRelayManager.PREF_CLOUD_CONTROLLER_ID, "");
+                if (controllerId == null || controllerId.trim().isEmpty()) {
+                    throw new IOException("Cloud controller is not provisioned on this phone");
+                }
+                DeviceBoundSigner signer = new DeviceBoundSigner(this);
+                new RemoteApiClient(endpoint, token, signer, controllerId)
+                        .setOutlet(device.mac, outlet, on);
                 runOnUiThread(() -> remoteStatus.setText(getString(
                         R.string.remote_command_sent, device.name, outlet,
                         on ? getString(R.string.remote_on) : getString(R.string.remote_off))));
-            } catch (IOException error) {
+            } catch (Exception error) {
                 runOnUiThread(() -> remoteStatus.setText(
                         getString(R.string.remote_failed, safeMessage(error))));
             }

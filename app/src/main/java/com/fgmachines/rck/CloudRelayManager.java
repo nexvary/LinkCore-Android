@@ -25,10 +25,14 @@ public final class CloudRelayManager implements Closeable {
     public static final String PREF_CLOUD_CONTROLLER_ID = "cloud_controller_id";
     public static final String PREF_CLOUD_CONTROLLER_KEY = "cloud_controller_key";
     public static final String PREF_CLOUD_REGISTERED_MACS = "cloud_registered_macs";
+    public static final String PREF_CLOUD_BINDING_KEY_ID = "cloud_binding_key_id";
+    private static final String PREF_CLOUD_SEEN_NONCES = "cloud_seen_command_nonces";
+    private static final int MAX_SEEN_NONCES = 512;
     private static final String PREFS = "fg_rck_settings";
     private static final String PREF_REMOTE_ENDPOINT = "remote_endpoint";
     private static final String PREF_REMOTE_TOKEN = "remote_token";
 
+    private final Context context;
     private final SharedPreferences prefs;
     private final ControllerHub hub;
     private final FleetStore fleetStore;
@@ -37,7 +41,8 @@ public final class CloudRelayManager implements Closeable {
     private volatile boolean started;
 
     public CloudRelayManager(Context context, ControllerHub hub, FleetStore fleetStore) {
-        this.prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.context = context.getApplicationContext();
+        this.prefs = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         this.hub = hub;
         this.fleetStore = fleetStore;
         this.registeredMacs.addAll(
@@ -84,7 +89,28 @@ public final class CloudRelayManager implements Closeable {
                     .putString(PREF_CLOUD_CONTROLLER_KEY, controllerKey)
                     .apply();
             registeredMacs.clear();
-            prefs.edit().remove(PREF_CLOUD_REGISTERED_MACS).apply();
+            prefs.edit()
+                    .remove(PREF_CLOUD_REGISTERED_MACS)
+                    .remove(PREF_CLOUD_BINDING_KEY_ID)
+                    .remove(PREF_CLOUD_SEEN_NONCES)
+                    .apply();
+        }
+
+        DeviceBoundSigner signer;
+        try {
+            signer = new DeviceBoundSigner(context);
+            String keyId = signer.keyId();
+            String boundKeyId = prefs.getString(PREF_CLOUD_BINDING_KEY_ID, "");
+            if (!keyId.equalsIgnoreCase(boundKeyId == null ? "" : boundKeyId)) {
+                api.bindDeviceInstallation(
+                        bearer,
+                        controllerId,
+                        signer,
+                        "Android " + Build.MODEL);
+                prefs.edit().putString(PREF_CLOUD_BINDING_KEY_ID, keyId).apply();
+            }
+        } catch (Exception error) {
+            throw new IOException("Device-bound cloud identity is unavailable", error);
         }
 
         List<FleetStore.DeviceRecord> devices = fleetStore.list();
@@ -129,24 +155,56 @@ public final class CloudRelayManager implements Closeable {
         String commandId = command.optString("command_id");
         String mac = FleetStore.normalizeMac(command.optString("mac"));
         int outlet = command.optInt("outlet", 0);
-        boolean on = "on".equalsIgnoreCase(command.optString("state"));
+        String state = command.optString("state", "").toLowerCase(java.util.Locale.ROOT);
+        boolean on = "on".equals(state);
         if (commandId.isEmpty()) return;
 
         String status = "acked";
-        String detail = "MTTL command sent locally";
+        String detail = "Verified device-bound command sent to MTTL locally";
         try {
-            if (mac.isEmpty() || outlet < 1 || outlet > 4) {
+            if (mac.isEmpty() || outlet < 1 || outlet > 4 || (!"on".equals(state) && !"off".equals(state))) {
                 throw new IOException("invalid_command");
             }
             if (!registeredMacs.contains(mac)) {
                 throw new IOException("device_not_owned_by_controller");
             }
+
+            JSONObject proof = command.optJSONObject("proof");
+            if (proof == null) throw new IOException("missing_device_bound_signature");
+
+            String keyId = proof.optString("key_id", "").toLowerCase(java.util.Locale.ROOT);
+            String nonce = proof.optString("nonce", "");
+            long issuedAt = proof.optLong("issued_at", 0L);
+            long validUntil = proof.optLong("valid_until", 0L);
+            String signature = proof.optString("signature", "");
+            long now = System.currentTimeMillis() / 1000L;
+
+            DeviceBoundSigner signer = new DeviceBoundSigner(context);
+            if (!signer.keyId().equalsIgnoreCase(keyId)) {
+                throw new IOException("untrusted_installation_key");
+            }
+            if (issuedAt <= 0L || validUntil <= 0L || validUntil <= now
+                    || issuedAt > now + 90L || issuedAt < now - 180L
+                    || validUntil - issuedAt > 120L) {
+                throw new IOException("expired_or_invalid_signed_window");
+            }
+            if (nonce.length() < 20 || wasNonceSeen(nonce)) {
+                throw new IOException("replayed_command_nonce");
+            }
+
+            String canonical = DeviceBoundSigner.canonical(
+                    controllerId, mac, outlet, state, issuedAt, validUntil, nonce, keyId);
+            if (!signer.verifyOwn(canonical, signature)) {
+                throw new IOException("invalid_device_bound_signature");
+            }
+
+            rememberNonce(nonce);
             if (!hub.isConnected(mac)) {
                 throw new IOException("device_offline");
             }
             hub.setOutlet(mac, outlet, on);
             try { hub.refresh(mac); } catch (IOException ignored) { }
-        } catch (IOException error) {
+        } catch (Exception error) {
             status = "failed";
             detail = safe(error);
         }
@@ -154,6 +212,23 @@ public final class CloudRelayManager implements Closeable {
         try {
             api.ack(controllerId, controllerKey, commandId, status, detail);
         } catch (IOException ignored) { }
+    }
+
+    private synchronized boolean wasNonceSeen(String nonce) {
+        Set<String> values = prefs.getStringSet(
+                PREF_CLOUD_SEEN_NONCES, java.util.Collections.emptySet());
+        return values.contains(nonce);
+    }
+
+    private synchronized void rememberNonce(String nonce) {
+        Set<String> current = prefs.getStringSet(
+                PREF_CLOUD_SEEN_NONCES, java.util.Collections.emptySet());
+        java.util.LinkedHashSet<String> copy = new java.util.LinkedHashSet<>(current);
+        if (copy.size() >= MAX_SEEN_NONCES) {
+            copy.clear();
+        }
+        copy.add(nonce);
+        prefs.edit().putStringSet(PREF_CLOUD_SEEN_NONCES, copy).apply();
     }
 
     static JSONObject toTelemetryJson(String mac, MttlProtocol.Telemetry telemetry) throws IOException {
