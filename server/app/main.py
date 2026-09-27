@@ -750,6 +750,20 @@ def accept_share(
             access.role = invite.role
         else:
             db.add(DeviceAccess(device_id=device.id, user_id=user.id, role=invite.role))
+    if device.owner_user_id != user.id:
+        creator = db.get(User, invite.created_by_user_id)
+        inherited = allowed_outlets_for(db, creator, device) if creator else []
+        initial_outlets = [] if invite.role == "view" else inherited
+        mask = sum(1 << (outlet - 1) for outlet in initial_outlets)
+        policy = db.scalar(select(OutletPolicy).where(
+            OutletPolicy.device_id == device.id,
+            OutletPolicy.user_id == user.id,
+        ))
+        if policy is None:
+            db.add(OutletPolicy(device_id=device.id, user_id=user.id, outlet_mask=mask))
+        else:
+            policy.outlet_mask = mask
+
     invite.accepted_by_user_id = user.id
     invite.accepted_at = utcnow()
     audit(db, "share_accepted", user.id, device.id, invite.role)
@@ -809,6 +823,10 @@ def set_share_outlets(
         raise HTTPException(status_code=403, detail="Only the owner can change Admin outlet access")
 
     outlets = sorted(set(int(item) for item in body.outlets))
+    if actor_role != "owner":
+        actor_allowed = set(allowed_outlets_for(db, user, device))
+        if any(item not in actor_allowed for item in outlets):
+            raise HTTPException(status_code=403, detail="Admin cannot grant outlets outside their own scope")
     if any(item < 1 or item > 4 for item in outlets):
         raise HTTPException(status_code=422, detail="Outlets must be between 1 and 4")
     if access.role == "view" and outlets:
