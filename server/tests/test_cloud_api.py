@@ -383,7 +383,10 @@ def test_per_subscriber_outlet_split_and_panel():
             "/api/v1/devices/A1B2C3D4E5F6/outlets/3?state=on",
             headers=auth(guest["access_token"]),
         )
-        assert denied.status_code == 403
+        # Zero-trust signature precondition is evaluated before a command is
+        # accepted into the relay queue, so unsigned commands never reach the
+        # outlet authorization stage.
+        assert denied.status_code == 428
 
         signed_owner = signed_post(
             client, owner, owner_private, owner_key_id,
