@@ -25,6 +25,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     Float,
@@ -202,8 +203,8 @@ class CommandProof(Base):
     command_id: Mapped[str] = mapped_column(ForeignKey("commands.id"), unique=True, index=True)
     key_id: Mapped[str] = mapped_column(String(64), index=True)
     nonce: Mapped[str] = mapped_column(String(128), index=True)
-    issued_at: Mapped[int] = mapped_column(Integer)
-    valid_until: Mapped[int] = mapped_column(Integer)
+    issued_at: Mapped[int] = mapped_column(BigInteger)
+    valid_until: Mapped[int] = mapped_column(BigInteger)
     signature_b64: Mapped[str] = mapped_column(String(1024))
     canonical_sha256: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
