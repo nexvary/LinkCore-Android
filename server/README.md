@@ -1,5 +1,22 @@
 # FG Machines Link Cloud / VPS
 
+## Zero-trust relay in v0.3.0
+
+The VPS is no longer an authority capable of fabricating electrical commands.
+
+- Every Android installation creates an ECDSA P-256 signing key inside Android Keystore.
+- The private key is non-exportable; the server receives only the public key and its SHA-256 installation fingerprint.
+- Outlet commands carry a signed canonical envelope containing controller ID, device MAC, outlet, target state, timestamp, expiry and a random nonce.
+- The VPS verifies the signature before queueing, but this is not the final trust boundary.
+- The Android controller independently verifies the same signature against its own local Keystore key before sending any MTTL command.
+- A compromised VPS therefore cannot manufacture a new valid ON/OFF command by editing the database or API response.
+- Nonces plus a short validity window provide replay resistance.
+- Cloud voice command generation is disabled; voice must be resolved locally into individually signed outlet commands.
+- Local customer labels such as device name and room are not stored by the v0.3 registration path. The server keeps only operational identifiers required for relay.
+
+The server panel is intentionally non-executable for power control in zero-trust mode. It monitors infrastructure and authorization state; power switching is performed from the bound Android app.
+
+
 This directory contains the deployable cloud backend and web control panel for FG Machines Link.
 
 The design is intentionally **local-first**:
