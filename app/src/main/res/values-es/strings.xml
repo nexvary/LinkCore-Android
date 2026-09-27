@@ -228,8 +228,8 @@
     <string name="share_token_waiting">El nuevo token aparece aquí. Toca para copiar.</string>
     <string name="revoke_access">Revocar acceso seleccionado</string>
     <string name="sharing_security_note">View solo lee. Control puede accionar salidas. Admin incluye Control. Usa la API solo en LAN/VPN confiable o detrás de HTTPS.</string>
-    <string name="remote_control_title">Cloud / Control remoto</string>
-    <string name="remote_control_note">Pega ahora un código de dispositivo para control por LAN/VPN o configura más adelante un VPS HTTPS. El control local sigue siendo predeterminado.</string>
+    <string name="remote_control_title">Control remoto LAN / ZeroTier</string>
+    <string name="remote_control_note">Usa un código de dispositivo por la red local o ZeroTier. FG Cloud está en espera y no es necesario para el uso normal.</string>
     <string name="remote_endpoint_hint">Endpoint remoto, ej. https://rck.example.com</string>
     <string name="remote_token_hint">Token de acceso</string>
     <string name="remote_connect">Conectar / Actualizar</string>
@@ -528,15 +528,16 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="event_voice_command">Comando de voz</string>
 
 
-    <string name="cloud_account_title">FG Machines Cloud / VPS</string>
-    <string name="cloud_account_note">Opcional. El control local de MTTL-W01, temporizadores y automatización siguen funcionando sin VPS. Inicia sesión cuando tu servidor HTTPS esté listo.</string>
+    <string name="cloud_account_title">FG Cloud — En espera</string>
+    <string name="cloud_account_note">FG Cloud ya está integrado en la aplicación, pero permanece desactivado hasta lanzar el servicio alojado. LAN sigue siendo el modo predeterminado y ZeroTier ofrece acceso remoto sin VPS.</string>
     <string name="cloud_endpoint_hint">Dirección HTTPS del VPS</string>
     <string name="cloud_email_hint">Correo de la cuenta cloud</string>
     <string name="cloud_password_hint">Contraseña de la cuenta cloud</string>
     <string name="cloud_register">Crear cuenta</string>
     <string name="cloud_login">Iniciar sesión</string>
-    <string name="cloud_sync_enable">Usar este teléfono como relé controlador cloud</string>
-    <string name="cloud_status_signed_out">Sin sesión iniciada. El control local sigue activo.</string>
+    <string name="cloud_sync_enable">Activar relé FG Cloud</string>
+    <string name="cloud_status_signed_out">FG Cloud está inactivo. LAN y ZeroTier siguen disponibles.</string>
+    <string name="cloud_status_on_hold">FG Cloud está inactivo. LAN y ZeroTier siguen disponibles.</string>
     <string name="cloud_status_missing">Introduce la dirección HTTPS del VPS, correo y contraseña.</string>
     <string name="cloud_status_authenticating">Conectando con la nube…</string>
     <string name="cloud_status_ready">Cuenta cloud guardada. Activa el relé en el teléfono controlador cuando quieras.</string>
@@ -568,8 +569,9 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="controller_watchdog_retry">Falló el reintento del controlador local: %1$s</string>
     <string name="controller_port_in_use">El puerto %1$d del controlador local ya está en uso. Mantén en ejecución solo una aplicación controladora FG Link / FG Machines RCK.</string>
 
-    <string name="free_remote_title">Acceso remoto gratuito</string>
-    <string name="free_remote_note">No requiere VPS ni suscripción mensual. Elige ZeroTier en el teléfono controlador o una puerta de enlace ZeroTier/OpenWrt en el router.</string>
+    <string name="free_remote_title">Acceso remoto ZeroTier</string>
+    <string name="free_remote_note">Modo remoto principal mientras FG Cloud está en espera. No requiere VPS de FG ni servicio cloud mensual.</string>
+    <string name="connectivity_stack_status">LAN: ACTIVO   •   ZeroTier: REMOTO PRINCIPAL   •   FG Cloud: EN ESPERA</string>
     <string name="free_remote_mode_label">Modo de acceso gratuito</string>
     <string name="free_remote_host_hint">IP privada de ZeroTier del teléfono controlador / gateway</string>
     <string name="free_remote_apply">Usar acceso remoto gratuito</string>

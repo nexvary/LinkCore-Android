@@ -2466,6 +2466,26 @@ public class MainActivity extends AppCompatActivity {
 
     private void configureCloudAccount() {
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+
+        if (CloudRelayManager.CLOUD_ON_HOLD) {
+            // Migration guard: an older build may have left cloud sync enabled.
+            // Force it off without touching LAN/ZeroTier endpoint credentials.
+            prefs.edit()
+                    .putBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, false)
+                    .apply();
+
+            cloudSyncSwitch.setChecked(false);
+            cloudSyncSwitch.setEnabled(false);
+            cloudEndpointInput.setVisibility(View.GONE);
+            cloudEmailInput.setVisibility(View.GONE);
+            cloudPasswordInput.setVisibility(View.GONE);
+            cloudRegisterButton.setVisibility(View.GONE);
+            cloudLoginButton.setVisibility(View.GONE);
+            cloudSyncSwitch.setVisibility(View.GONE);
+            cloudStatus.setText(R.string.cloud_status_on_hold);
+            return;
+        }
+
         cloudEndpointInput.setText(prefs.getString(PREF_REMOTE_ENDPOINT, ""));
         cloudSyncSwitch.setChecked(
                 prefs.getBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, false));
@@ -2726,15 +2746,25 @@ public class MainActivity extends AppCompatActivity {
         remoteStatus.setText(R.string.remote_sending);
         commandWorker.execute(() -> {
             try {
-                SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-                String controllerId = prefs.getString(
-                        CloudRelayManager.PREF_CLOUD_CONTROLLER_ID, "");
-                if (controllerId == null || controllerId.trim().isEmpty()) {
-                    throw new IOException("Cloud controller is not provisioned on this phone");
+                RemoteApiClient api;
+                if (EndpointSecurity.isPrivateOrVpnEndpoint(endpoint)) {
+                    // LAN / ZeroTier path: no FG server dependency.
+                    api = new RemoteApiClient(endpoint, token);
+                } else {
+                    if (CloudRelayManager.CLOUD_ON_HOLD) {
+                        throw new IOException(getString(R.string.cloud_status_on_hold));
+                    }
+                    SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+                    String controllerId = prefs.getString(
+                            CloudRelayManager.PREF_CLOUD_CONTROLLER_ID, "");
+                    if (controllerId == null || controllerId.trim().isEmpty()) {
+                        throw new IOException("Cloud controller is not provisioned on this phone");
+                    }
+                    DeviceBoundSigner signer = new DeviceBoundSigner(this);
+                    api = new RemoteApiClient(endpoint, token, signer, controllerId);
                 }
-                DeviceBoundSigner signer = new DeviceBoundSigner(this);
-                new RemoteApiClient(endpoint, token, signer, controllerId)
-                        .setOutlet(device.mac, outlet, on);
+
+                api.setOutlet(device.mac, outlet, on);
                 runOnUiThread(() -> remoteStatus.setText(getString(
                         R.string.remote_command_sent, device.name, outlet,
                         on ? getString(R.string.remote_on) : getString(R.string.remote_off))));

@@ -4332,6 +4332,18 @@
                             android:textColor="@color/fg_text_secondary"
                             android:textSize="11sp" />
 
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:background="@drawable/bg_status_pill"
+                            android:padding="8dp"
+                            android:text="@string/connectivity_stack_status"
+                            android:textAlignment="viewStart"
+                            android:textColor="@color/fg_green"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
                         <Spinner
                             android:id="@+id/freeRemoteModeSpinner"
                             android:layout_width="match_parent"

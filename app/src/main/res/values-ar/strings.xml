@@ -228,8 +228,8 @@
     <string name="share_token_waiting">سيظهر رمز الوصول الجديد هنا. اضغط لنسخه.</string>
     <string name="revoke_access">إلغاء الصلاحية المحددة</string>
     <string name="sharing_security_note">صلاحية View للقراءة فقط، وControl للتحكم بالمخارج، وAdmin تتضمن التحكم. استخدم الواجهة داخل شبكة موثوقة/VPN أو خلف HTTPS.</string>
-    <string name="remote_control_title">السحابة / التحكم عن بُعد</string>
-    <string name="remote_control_note">يمكنك الآن لصق Share Code للتحكم عبر LAN/VPN، أو إضافة عنوان VPS آمن عبر HTTPS لاحقًا. يظل التحكم المحلي هو الافتراضي.</string>
+    <string name="remote_control_title">التحكم عبر LAN / ZeroTier</string>
+    <string name="remote_control_note">استخدم Share Code عبر الشبكة المحلية أو ZeroTier. FG Cloud متوقف مؤقتًا وليس مطلوبًا للتشغيل الطبيعي.</string>
     <string name="remote_endpoint_hint">العنوان البعيد، مثال https://rck.example.com</string>
     <string name="remote_token_hint">رمز الوصول</string>
     <string name="remote_connect">اتصال / تحديث</string>
@@ -528,15 +528,16 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="event_voice_command">أمر صوتي</string>
 
 
-    <string name="cloud_account_title">حساب FG Machines Cloud / VPS</string>
-    <string name="cloud_account_note">اختياري. يظل التحكم المحلي في MTTL-W01 والمؤقتات والأتمتة تعمل بدون VPS. سجّل الدخول فقط عندما يكون خادم HTTPS جاهزًا.</string>
+    <string name="cloud_account_title">FG Cloud — متوقف مؤقتًا</string>
+    <string name="cloud_account_note">ميزة FG Cloud موجودة داخل التطبيق وجاهزة للمستقبل، لكنها متوقفة عمدًا حتى إطلاق الخادم لاحقًا. الشبكة المحلية هي الأساس وZeroTier يوفر التحكم البعيد بدون VPS.</string>
     <string name="cloud_endpoint_hint">عنوان VPS الآمن HTTPS</string>
     <string name="cloud_email_hint">البريد الإلكتروني لحساب السحابة</string>
     <string name="cloud_password_hint">كلمة مرور حساب السحابة</string>
     <string name="cloud_register">إنشاء حساب</string>
     <string name="cloud_login">تسجيل الدخول</string>
-    <string name="cloud_sync_enable">استخدام هذا الهاتف كجسر تحكم للسحابة</string>
-    <string name="cloud_status_signed_out">غير مسجل الدخول. التحكم المحلي ما زال يعمل.</string>
+    <string name="cloud_sync_enable">تفعيل جسر FG Cloud</string>
+    <string name="cloud_status_signed_out">FG Cloud غير نشط. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
+    <string name="cloud_status_on_hold">FG Cloud غير نشط. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
     <string name="cloud_status_missing">أدخل عنوان VPS عبر HTTPS والبريد وكلمة المرور.</string>
     <string name="cloud_status_authenticating">جارٍ الاتصال بالسحابة…</string>
     <string name="cloud_status_ready">تم حفظ حساب السحابة. فعّل الجسر على هاتف التحكم عندما تكون جاهزًا.</string>
@@ -568,8 +569,9 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="controller_watchdog_retry">تعذرت محاولة إعادة تشغيل وحدة التحكم المحلية: %1$s</string>
     <string name="controller_port_in_use">منفذ وحدة التحكم المحلية %1$d مستخدم بالفعل. شغّل نسخة واحدة فقط من FG Link / FG Machines RCK كوحدة تحكم.</string>
 
-    <string name="free_remote_title">التحكم المجاني عن بُعد</string>
-    <string name="free_remote_note">لا يحتاج VPS ولا اشتراكًا شهريًا. اختر ZeroTier على هاتف التحكم أو بوابة ZeroTier/OpenWrt على الراوتر.</string>
+    <string name="free_remote_title">التحكم البعيد عبر ZeroTier</string>
+    <string name="free_remote_note">هذا هو المسار البعيد الأساسي حاليًا أثناء توقف FG Cloud. لا يحتاج إلى خادم FG أو اشتراك سحابي شهري.</string>
+    <string name="connectivity_stack_status">LAN: يعمل   •   ZeroTier: التحكم البعيد الأساسي   •   FG Cloud: متوقف مؤقتًا</string>
     <string name="free_remote_mode_label">طريقة الوصول المجاني</string>
     <string name="free_remote_host_hint">عنوان ZeroTier الخاص بهاتف التحكم / بوابة الراوتر</string>
     <string name="free_remote_apply">استخدام المسار المجاني</string>

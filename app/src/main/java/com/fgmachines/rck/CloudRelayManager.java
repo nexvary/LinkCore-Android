@@ -21,6 +21,11 @@ import java.util.concurrent.TimeUnit;
  * It never exposes TCP 10086 or HTTP 18086 to the public Internet.
  */
 public final class CloudRelayManager implements Closeable {
+    /**
+     * Product decision: FG Cloud is implemented but intentionally dormant
+     * until the hosted service is launched. LAN and ZeroTier remain primary.
+     */
+    public static final boolean CLOUD_ON_HOLD = true;
     public static final String PREF_CLOUD_SYNC_ENABLED = "cloud_sync_enabled";
     public static final String PREF_CLOUD_CONTROLLER_ID = "cloud_controller_id";
     public static final String PREF_CLOUD_CONTROLLER_KEY = "cloud_controller_key";
@@ -50,7 +55,7 @@ public final class CloudRelayManager implements Closeable {
     }
 
     public synchronized void start() {
-        if (started) return;
+        if (CLOUD_ON_HOLD || started) return;
         started = true;
         worker.scheduleWithFixedDelay(this::safeSync, 3, 15, TimeUnit.SECONDS);
     }
@@ -64,6 +69,7 @@ public final class CloudRelayManager implements Closeable {
     }
 
     void syncOnce() throws IOException {
+        if (CLOUD_ON_HOLD) return;
         if (!prefs.getBoolean(PREF_CLOUD_SYNC_ENABLED, false)) return;
         String endpoint = prefs.getString(PREF_REMOTE_ENDPOINT, "");
         String bearer = prefs.getString(PREF_REMOTE_TOKEN, "");

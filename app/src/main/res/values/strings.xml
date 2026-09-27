@@ -236,8 +236,8 @@
     <string name="share_token_waiting">New access token appears here. Tap to copy.</string>
     <string name="revoke_access">Revoke selected access</string>
     <string name="sharing_security_note">View tokens can read status. Control tokens can switch outlets. Admin includes Control permissions. Use the API only on trusted LAN/VPN or behind HTTPS.</string>
-    <string name="remote_control_title">Cloud / Remote Control</string>
-    <string name="remote_control_note">Paste a Device Share Code for LAN/VPN control now, or configure an HTTPS VPS endpoint later. Local control remains the default.</string>
+    <string name="remote_control_title">LAN / ZeroTier Remote Control</string>
+    <string name="remote_control_note">Use a Device Share Code over the local network or ZeroTier. FG Cloud is on hold and is not required for normal operation.</string>
     <string name="remote_endpoint_hint">Remote endpoint, e.g. https://rck.example.com</string>
     <string name="remote_token_hint">Access token</string>
     <string name="remote_connect">Connect / Refresh</string>
@@ -536,15 +536,16 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="event_voice_command">Voice command</string>
 
 
-    <string name="cloud_account_title">FG Machines Cloud / VPS</string>
-    <string name="cloud_account_note">Optional. Local MTTL-W01 control, timers and automation continue without a VPS. Sign in only when your HTTPS server is ready.</string>
+    <string name="cloud_account_title">FG Cloud — On Hold</string>
+    <string name="cloud_account_note">FG Cloud is already built into the app but intentionally dormant until the hosted service launches. LAN remains the default and ZeroTier provides remote access without a VPS.</string>
     <string name="cloud_endpoint_hint">HTTPS VPS address</string>
     <string name="cloud_email_hint">Cloud account email</string>
     <string name="cloud_password_hint">Cloud account password</string>
     <string name="cloud_register">Create account</string>
     <string name="cloud_login">Sign in</string>
-    <string name="cloud_sync_enable">Enable this phone as the cloud controller relay</string>
-    <string name="cloud_status_signed_out">Not signed in. Local control remains active.</string>
+    <string name="cloud_sync_enable">Enable FG Cloud relay</string>
+    <string name="cloud_status_signed_out">FG Cloud is inactive. LAN and ZeroTier remain available.</string>
+    <string name="cloud_status_on_hold">FG Cloud is inactive. LAN and ZeroTier remain available.</string>
     <string name="cloud_status_missing">Enter the HTTPS VPS address, email and password.</string>
     <string name="cloud_status_authenticating">Contacting cloud…</string>
     <string name="cloud_status_ready">Cloud account saved. Enable relay on the controller phone when ready.</string>
@@ -576,8 +577,9 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="controller_watchdog_retry">Local controller restart retry failed: %1$s</string>
     <string name="controller_port_in_use">Local controller port %1$d is already in use. Keep only one FG Link / FG Machines RCK controller app running.</string>
 
-    <string name="free_remote_title">Free Remote Access</string>
-    <string name="free_remote_note">No VPS or monthly subscription required. Choose ZeroTier on the controller phone or a ZeroTier/OpenWrt router gateway.</string>
+    <string name="free_remote_title">ZeroTier Remote Access</string>
+    <string name="free_remote_note">Primary remote mode while FG Cloud is on hold. No FG VPS or monthly cloud service is required.</string>
+    <string name="connectivity_stack_status">LAN: ACTIVE   •   ZeroTier: PRIMARY REMOTE   •   FG Cloud: ON HOLD</string>
     <string name="free_remote_mode_label">Free access mode</string>
     <string name="free_remote_host_hint">Private ZeroTier IP of controller phone / router gateway</string>
     <string name="free_remote_apply">Use free remote path</string>

@@ -28,6 +28,29 @@ final class EndpointSecurity {
         return false;
     }
 
+    static boolean isPrivateOrVpnEndpoint(String baseUrl) throws IOException {
+        if (baseUrl == null || baseUrl.trim().isEmpty()) return false;
+        final URL url;
+        try {
+            url = new URL(baseUrl.trim());
+        } catch (Exception error) {
+            throw new IOException("Remote endpoint is not a valid URL", error);
+        }
+        String host = url.getHost();
+        if (host == null || host.trim().isEmpty()) return false;
+        InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(host);
+        } catch (Exception error) {
+            throw new IOException("Could not resolve remote endpoint host", error);
+        }
+        if (addresses.length == 0) return false;
+        for (InetAddress address : addresses) {
+            if (!isTrustedPeer(address)) return false;
+        }
+        return true;
+    }
+
     static void validateRemoteEndpoint(String baseUrl) throws IOException {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IOException("Remote endpoint is empty");

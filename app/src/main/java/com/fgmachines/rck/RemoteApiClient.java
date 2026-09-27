@@ -63,11 +63,21 @@ public final class RemoteApiClient {
 
     public void setOutlet(String mac, int outlet, boolean on) throws IOException {
         if (outlet < 1 || outlet > 4) throw new IOException("Outlet must be 1..4");
-        if (signer == null || controllerId.isEmpty()) {
-            throw new IOException("This remote command requires the device-bound FG Link identity");
-        }
         String safeMac = FleetStore.normalizeMac(mac);
         String state = on ? "on" : "off";
+
+        // LAN / ZeroTier is deliberately independent from FG Cloud. Private/VPN
+        // endpoints use the local API token and do not need cloud provisioning.
+        if (signer == null || controllerId.isEmpty()) {
+            if (!EndpointSecurity.isPrivateOrVpnEndpoint(baseUrl)) {
+                throw new IOException(
+                        "Public remote control requires the device-bound FG Cloud identity");
+            }
+            request("POST", "/api/v1/devices/" + safeMac + "/outlets/" + outlet
+                    + "?state=" + state);
+            return;
+        }
+
         long issuedAt = System.currentTimeMillis() / 1000L;
         long validUntil = issuedAt + 90L;
         String nonce = DeviceBoundSigner.newNonce();
