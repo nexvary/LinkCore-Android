@@ -46,6 +46,26 @@ public final class CloudApiClient {
                 response.optString("controller_key"));
     }
 
+    public void bindDeviceInstallation(
+            String bearer,
+            String controllerId,
+            DeviceBoundSigner signer,
+            String label) throws IOException {
+        try {
+            JSONObject body = json(
+                    "key_id", signer.keyId(),
+                    "public_key_b64", signer.publicKeyBase64(),
+                    "label", label == null ? "" : label,
+                    "hardware_backed", signer.isHardwareBacked());
+            request("PUT", "/api/v1/controllers/" + controllerId + "/device-binding",
+                    bearer, "", body);
+        } catch (IOException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IOException("Unable to register device-bound signing identity", error);
+        }
+    }
+
     public void registerDevice(String bearer, String controllerId, FleetStore.DeviceRecord device)
             throws IOException {
         JSONObject body = json(
