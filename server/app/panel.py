@@ -113,7 +113,7 @@ PANEL_HTML = r"""<!doctype html>
     </nav>
 
     <div class="sideMeta">
-      <div class="sideMetaRow"><span><span class="statusDot"></span><span id="sideStatus">Cloud API</span></span><span>0.2</span></div>
+      <div class="sideMetaRow"><span><span class="statusDot"></span><span id="sideStatus">Cloud API</span></span><span>0.2.1</span></div>
       <div class="sideActions">
         <button class="btn ghost small" id="langBtn" onclick="toggleLang()">English</button>
         <button class="btn danger small hidden" id="logoutBtn" onclick="logout()">خروج</button>
@@ -159,7 +159,7 @@ PANEL_HTML = r"""<!doctype html>
             <div class="kpi"><div class="kpiHead"><span id="kpiServer">Cloud API</span><span>01</span></div><div class="kpiValue ok" id="serverState">ONLINE</div><div class="kpiSub" id="serverSub">HTTPS gateway available</div></div>
             <div class="kpi"><div class="kpiHead"><span id="kpiDevices">Registered Devices</span><span>02</span></div><div class="kpiValue" id="deviceCount">0</div><div class="kpiSub" id="deviceSub">MTTL nodes</div></div>
             <div class="kpi"><div class="kpiHead"><span id="kpiOnline">Online Now</span><span>03</span></div><div class="kpiValue ok" id="onlineCount">0</div><div class="kpiSub" id="onlineSub">Heartbeat within threshold</div></div>
-            <div class="kpi"><div class="kpiHead"><span id="kpiVersion">Platform Version</span><span>04</span></div><div class="kpiValue amber">0.2</div><div class="kpiSub">FG Link Cloud</div></div>
+            <div class="kpi"><div class="kpiHead"><span id="kpiVersion">Platform Version</span><span>04</span></div><div class="kpiValue amber">0.2.1</div><div class="kpiSub">FG Link Cloud</div></div>
           </div>
         </section>
 
