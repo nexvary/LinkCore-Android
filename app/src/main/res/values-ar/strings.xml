@@ -571,6 +571,7 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
 
     <string name="free_remote_title">التحكم البعيد عبر ZeroTier</string>
     <string name="free_remote_note">هذا هو المسار البعيد الأساسي حاليًا أثناء توقف FG Cloud. لا يحتاج إلى خادم FG أو اشتراك سحابي شهري.</string>
+    <string name="connectivity_stack_status">LAN: يعمل   •   ZeroTier: التحكم البعيد الأساسي   •   FG Cloud: متوقف مؤقتًا</string>
     <string name="free_remote_mode_label">طريقة الوصول المجاني</string>
     <string name="free_remote_host_hint">عنوان ZeroTier الخاص بهاتف التحكم / بوابة الراوتر</string>
     <string name="free_remote_apply">استخدام المسار المجاني</string>
