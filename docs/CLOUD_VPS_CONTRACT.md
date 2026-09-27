@@ -110,3 +110,36 @@ enable **Cloud controller relay**. When enabled it:
 
 The relay is disabled by default. Local timers, automation, scenes, alerts and
 direct control continue working when the VPS is absent or unreachable.
+
+
+## Zero-trust device-bound relay (Android 1.6.5 / Cloud 0.3.0)
+
+Remote electrical control now treats the VPS as an untrusted message broker.
+
+Each controller installation creates an ECDSA P-256 key in Android Keystore. The
+private key is non-exportable. Its public-key SHA-256 fingerprint is the
+installation identity and replaces privacy-sensitive device identifiers such as
+IMEI or Android ID.
+
+Every relay command is signed over the exact controller ID, normalized MTTL
+MAC, outlet, target state, issue time, expiry, random nonce and installation
+fingerprint. The server verifies the signature before queueing, but the Android
+controller performs the decisive verification again from its own Keystore key
+before calling the MTTL protocol.
+
+Consequences:
+
+- A database/VPS compromise cannot create a new valid ON/OFF command.
+- Editing outlet, state, MAC or controller ID invalidates the signature.
+- Replays are blocked by short expiry plus a persistent nonce cache.
+- Only one active bound phone identity is kept for a controller.
+- Replacing the phone rotates the active installation binding.
+- The web panel is monitoring/provisioning only for power operations.
+- Cloud-side voice command creation is disabled; voice control must become
+  signed outlet commands on the trusted Android installation.
+- Local device names and room labels are not persisted in the cloud
+  registration path.
+
+The VPS still remains capable of denial of service because it transports
+messages. Zero-trust signing removes its authority to fabricate executable
+electrical commands; it does not make server availability irrelevant.
