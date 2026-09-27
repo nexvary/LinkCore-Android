@@ -571,6 +571,7 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
 
     <string name="free_remote_title">Acceso remoto ZeroTier</string>
     <string name="free_remote_note">Modo remoto principal mientras FG Cloud está en espera. No requiere VPS de FG ni servicio cloud mensual.</string>
+    <string name="connectivity_stack_status">LAN: ACTIVO   •   ZeroTier: REMOTO PRINCIPAL   •   FG Cloud: EN ESPERA</string>
     <string name="free_remote_mode_label">Modo de acceso gratuito</string>
     <string name="free_remote_host_hint">IP privada de ZeroTier del teléfono controlador / gateway</string>
     <string name="free_remote_apply">Usar acceso remoto gratuito</string>
