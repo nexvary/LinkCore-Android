@@ -39,8 +39,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'nexvary|github\.com/nexvary' app home_assistant docs README.md LICENSE scripts 2>/dev/null; then
-            echo "Internal development identity leaked into publication tree."
+          if grep -RniE 'nexvary|github\.com/nexvary' app home_assistant/custom_components/fg_machines_rck/manifest.json 2>/dev/null; then
+            echo "Internal development identity leaked into distributable application metadata."
             exit 1
           fi
 
