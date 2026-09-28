@@ -721,11 +721,12 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="ecosystem_title">Smart Home Ecosystems</string>
     <string name="ecosystem_note">One bridge layer for Home Assistant, Alexa, Google Home and Matter without changing the verified MTTL control path.</string>
     <string name="ecosystem_summary_waiting">Checking ecosystem routes…</string>
-    <string name="ecosystem_summary_format">%1$d of %2$d routes ready · Matter bridge reserved</string>
+    <string name="ecosystem_summary_format">%1$d of %2$d production routes ready · Matter Windows Bridge is beta</string>
     <string name="ecosystem_home_assistant">Home Assistant · Local bridge READY</string>
     <string name="ecosystem_alexa">Amazon Alexa · READY via Home Assistant</string>
     <string name="ecosystem_google_home">Google Home · READY via Home Assistant</string>
-    <string name="ecosystem_matter">Matter · Bridge reserved / not enabled yet</string>
+    <string name="ecosystem_matter">Matter · Windows Bridge BETA ready for real pairing test</string>
     <string name="ecosystem_setup_button">Set up Home Assistant bridge</string>
     <string name="ecosystem_setup_hint">Create a Home Assistant token here, then connect Home Assistant to Alexa or Google Home.</string>
+    <string name="ecosystem_matter_button">Windows Matter Bridge · Beta</string>
 </resources>

@@ -1,0 +1,38 @@
+{
+  "name": "matterbridge-fg-link",
+  "version": "0.1.0",
+  "description": "Matterbridge DynamicPlatform bridge for FG Link / MTTL-W01",
+  "author": "NEXVARY Inc / FG Machines",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/module.js",
+  "types": "dist/module.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/module.js",
+      "types": "./dist/module.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22.13.0 <23.0.0 || >=24.0.0 <25.0.0 || >=26.0.0 <27.0.0"
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "README.md",
+    "matterbridge-fg-link.config.json",
+    "matterbridge-fg-link.schema.json"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run",
+    "verify": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "matterbridge": "3.10.11",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  }
+}

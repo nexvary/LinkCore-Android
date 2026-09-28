@@ -1,35 +1,42 @@
-# FG Link Smart Home Ecosystems — 1.6.8
+# FG Link Smart Home Ecosystems — 1.6.9
 
-FG Link uses one ecosystem layer instead of adding an unrelated control path for every vendor.
+FG Link keeps the verified MTTL control path and adds interoperable ecosystem bridges around the authenticated local API.
 
-## Active routes
+## Routes
 
 | Ecosystem | State | Route |
 | --- | --- | --- |
-| Home Assistant | Ready | Local authenticated FG Link API on TCP 18086 |
-| Amazon Alexa | Ready through Home Assistant | Alexa → Home Assistant → FG Link API → MTTL-W01 |
-| Google Home | Ready through Home Assistant | Google Home → Home Assistant → FG Link API → MTTL-W01 |
-| Matter | Reserved | Not enabled until an actual bridge implementation passes interoperability validation |
+| Home Assistant | Ready | Home Assistant → FG Link API TCP 18086 → MTTL-W01 |
+| Amazon Alexa | Ready through Home Assistant | Alexa → Home Assistant → FG Link API |
+| Google Home | Ready through Home Assistant | Google Home → Home Assistant → FG Link API |
+| Matter | **Windows beta implemented** | Matter controller → FG Link Matter Bridge → FG Link API TCP 18086 → MTTL-W01 |
+
+The Matter bridge source is under `matter_bridge/`. It is a real Matterbridge DynamicPlatform plugin, not a placeholder. It discovers the FG Link fleet from `GET /api/v1/devices`, creates four Matter On/Off Plug-in Unit endpoints per MTTL-W01, mirrors relay state and reachability, and forwards Matter ON/OFF commands to the authenticated FG Link local API.
 
 ## Security boundary
 
-Alexa and Google Home do not receive a privileged direct path to the MTTL controller. Home Assistant talks to the same authenticated local API already used by FG Link integrations. The cloud voice endpoint remains unable to fabricate executable relay commands because device-bound command signing is still enforced.
+The Matter bridge needs a FG Link **CONTROL** token. Plain HTTP is accepted only for loopback, private LAN, link-local, CGNAT/private VPN addresses or `.local` hosts. Public endpoints require HTTPS. The bridge never sends MTTL frames directly and therefore does not bypass the existing controller identity checks.
 
 ## MTTL path remains unchanged
 
 - Provisioning endpoint: TCP 30300
 - Verified controller protocol: TCP 10086
 - Local authenticated integration API: TCP 18086
-- Four verified AC relay channels remain the only switchable channels on MTTL-W01.
-- USB switching is not invented or exposed through voice ecosystems.
+- Matter bridge: Windows process using Matterbridge/matter.js
+- Four verified AC relay channels are exposed. USB switching remains intentionally unavailable.
 
-## Setup
+## Windows beta test
 
-1. In FG Link, open **Smart Home → Smart Home Ecosystems** and choose **Set up Home Assistant bridge**.
-2. FG Link opens the existing **Settings → Users, Sharing & Home Assistant** section.
-3. Create a Home Assistant token and note the local/private FG Link API endpoint.
-4. Install the FG Machines RCK Home Assistant custom integration and enter that endpoint and token.
-5. Confirm the four outlet entities work from Home Assistant before exposing them to Alexa or Google Home.
-6. In Home Assistant, use the user's selected Alexa or Google Home integration to expose only the desired FG Link switch entities.
+1. On the FG Link Android controller, start the controller service and create a **Home Assistant token**. That token has CONTROL permission and can also be used by the Matter bridge.
+2. Keep the Windows PC and Android controller on the same LAN for the first test.
+3. Download/extract the `FG-Link-Matter-Bridge-Windows` CI artifact.
+4. Run PowerShell in the extracted folder:
+   `powershell -ExecutionPolicy Bypass -File .\scripts\Install-FGLinkMatterBridge.ps1 -ApiUrl http://PHONE_IP:18086`
+5. Paste the token when prompted. The installer installs the supported Matterbridge runtime if required, registers the local FG Link plugin, and writes the plugin configuration under the current user's Matterbridge profile.
+6. Start:
+   `powershell -ExecutionPolicy Bypass -File .\scripts\Start-FGLinkMatterBridge.ps1`
+7. Open Matterbridge's frontend (normally port 8283), scan its Matter QR code from the chosen Matter ecosystem, and test Outlet 1–4.
 
-Matter is intentionally not presented as working until a real bridge is implemented and validated.
+## Validation level
+
+The source, TypeScript build, API client tests, Windows packaging and Android regression gates are automated in CI. **Physical Matter commissioning with the user's Windows machine, phone, router and chosen Matter controller remains the final hardware/network validation gate.** Passing CI does not equal CSA certification.

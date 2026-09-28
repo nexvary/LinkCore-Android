@@ -712,11 +712,12 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="ecosystem_title">Akıllı Ev Ekosistemleri</string>
     <string name="ecosystem_note">Doğrulanmış MTTL kontrol yolunu değiştirmeden Home Assistant, Alexa, Google Home ve Matter için tek köprü katmanı.</string>
     <string name="ecosystem_summary_waiting">Ekosistem yolları denetleniyor…</string>
-    <string name="ecosystem_summary_format">%1$d/%2$d yol hazır · Matter köprüsü ayrıldı</string>
+    <string name="ecosystem_summary_format">%1$d/%2$d üretim yolu hazır · Matter Windows Bridge beta</string>
     <string name="ecosystem_home_assistant">Home Assistant · Yerel köprü HAZIR</string>
     <string name="ecosystem_alexa">Amazon Alexa · Home Assistant üzerinden HAZIR</string>
     <string name="ecosystem_google_home">Google Home · Home Assistant üzerinden HAZIR</string>
-    <string name="ecosystem_matter">Matter · Köprü ayrıldı / henüz etkin değil</string>
+    <string name="ecosystem_matter">Matter · Windows Bridge BETA gerçek eşleştirme testine hazır</string>
     <string name="ecosystem_setup_button">Home Assistant köprüsünü kur</string>
     <string name="ecosystem_setup_hint">Burada bir Home Assistant belirteci oluşturun, ardından Home Assistant’ı Alexa veya Google Home’a bağlayın.</string>
+    <string name="ecosystem_matter_button">Windows Matter Bridge · Beta</string>
 </resources>

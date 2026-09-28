@@ -721,6 +721,12 @@ public class MainActivity extends AppCompatActivity {
                         Snackbar.LENGTH_LONG).show();
             });
         }
+
+        MaterialButton matterButton = findViewById(R.id.ecosystemMatterButton);
+        if (matterButton != null) {
+            matterButton.setOnClickListener(v -> openExternalUrl(
+                    "https://github.com/nexvary/LinkCore-Android/tree/main/matter_bridge"));
+        }
     }
 
     private void scrollToSection(int scrollViewId, int sectionId) {

@@ -1,0 +1,10 @@
+{
+  "name": "matterbridge-fg-link",
+  "type": "DynamicPlatform",
+  "apiUrl": "http://192.168.1.2:18086",
+  "token": "",
+  "pollIntervalSeconds": 5,
+  "exposeOfflineDevices": true,
+  "debug": false,
+  "unregisterOnShutdown": false
+}

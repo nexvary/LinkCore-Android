@@ -34,6 +34,10 @@ final class SmartHomeEcosystemCatalog {
                 || ecosystem == Ecosystem.GOOGLE_HOME;
     }
 
+    static boolean isBeta(Ecosystem ecosystem) {
+        return ecosystem == Ecosystem.MATTER;
+    }
+
     static boolean permitsDirectCloudRelay(Ecosystem ecosystem) {
         return false;
     }

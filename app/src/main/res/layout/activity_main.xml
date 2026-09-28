@@ -1932,6 +1932,23 @@
                             app:iconSize="22dp"
                             app:iconTint="@color/fg_blue_bright"
                             app:strokeColor="@color/fg_blue" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/ecosystemMatterButton"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/ecosystem_matter_button"
+                            android:textAllCaps="false"
+                            android:textColor="@color/fg_text"
+                            app:cornerRadius="14dp"
+                            app:icon="@drawable/ic_platform_devices"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconSize="22dp"
+                            app:iconTint="@color/fg_warning"
+                            app:strokeColor="@color/fg_warning" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
