@@ -709,11 +709,12 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="email_alerts_enabled">Email alerts enabled</string>
     <string name="email_alerts_disabled">Email alerts disabled</string>
 
-    <string name="nav_devices">Devices</string>
-    <string name="devices_title">Devices</string>
+    <string name="nav_devices">My Devices</string>
+    <string name="devices_title">My Devices</string>
     <string name="devices_empty">No registered devices yet.</string>
     <string name="devices_hint">Tap a device card to select it and open its subscriber controls.</string>
     <string name="devices_limit_note">Up to 10 registered devices are shown here.</string>
     <string name="devices_page_summary">%1$d devices · %2$d online</string>
+    <string name="device_selected_current">✓ Selected now</string>
     <string name="device_mac_format">MAC · %1$s</string>
 </resources>

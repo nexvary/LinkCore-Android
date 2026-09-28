@@ -702,11 +702,12 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="email_alerts_enabled">تم تفعيل تنبيهات البريد الإلكتروني</string>
     <string name="email_alerts_disabled">تم تعطيل تنبيهات البريد الإلكتروني</string>
 
-    <string name="nav_devices">الأجهزة</string>
-    <string name="devices_title">الأجهزة</string>
+    <string name="nav_devices">أجهزتي</string>
+    <string name="devices_title">أجهزتي</string>
     <string name="devices_empty">لا توجد أجهزة مسجلة حتى الآن.</string>
     <string name="devices_hint">اضغط على بطاقة الجهاز لاختياره وفتح صفحة المشترك الخاصة به.</string>
     <string name="devices_limit_note">يظهر هنا حتى 10 أجهزة مسجلة.</string>
     <string name="devices_page_summary">%1$d أجهزة · %2$d متصل</string>
+    <string name="device_selected_current">✓ المحدد حاليًا</string>
     <string name="device_mac_format">MAC · %1$s</string>
 </resources>

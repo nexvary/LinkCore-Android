@@ -700,11 +700,12 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="email_alerts_enabled">E-posta uyarıları etkin</string>
     <string name="email_alerts_disabled">E-posta uyarıları devre dışı</string>
 
-    <string name="nav_devices">Cihazlar</string>
-    <string name="devices_title">Cihazlar</string>
+    <string name="nav_devices">Cihazlarım</string>
+    <string name="devices_title">Cihazlarım</string>
     <string name="devices_empty">Henüz kayıtlı cihaz yok.</string>
     <string name="devices_hint">Cihazı seçmek ve abone denetimlerini açmak için karta dokunun.</string>
     <string name="devices_limit_note">Burada en fazla 10 kayıtlı cihaz gösterilir.</string>
     <string name="devices_page_summary">%1$d cihaz · %2$d çevrimiçi</string>
+    <string name="device_selected_current">✓ Şu anda seçili</string>
     <string name="device_mac_format">MAC · %1$s</string>
 </resources>

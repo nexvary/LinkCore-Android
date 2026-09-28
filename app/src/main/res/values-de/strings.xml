@@ -700,11 +700,12 @@ Leistung %3$.1f W · Energie %4$.3f kWh · Temperatur %5$d°C
     <string name="email_alerts_enabled">E-Mail-Warnungen aktiviert</string>
     <string name="email_alerts_disabled">E-Mail-Warnungen deaktiviert</string>
 
-    <string name="nav_devices">Geräte</string>
-    <string name="devices_title">Geräte</string>
+    <string name="nav_devices">Meine Geräte</string>
+    <string name="devices_title">Meine Geräte</string>
     <string name="devices_empty">Noch keine Geräte registriert.</string>
     <string name="devices_hint">Tippen Sie auf eine Gerätekarte, um sie auszuwählen und die Teilnehmersteuerung zu öffnen.</string>
     <string name="devices_limit_note">Hier werden bis zu 10 registrierte Geräte angezeigt.</string>
     <string name="devices_page_summary">%1$d Geräte · %2$d online</string>
+    <string name="device_selected_current">✓ Aktuell ausgewählt</string>
     <string name="device_mac_format">MAC · %1$s</string>
 </resources>

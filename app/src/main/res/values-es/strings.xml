@@ -700,11 +700,12 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="email_alerts_enabled">Alertas por correo activadas</string>
     <string name="email_alerts_disabled">Alertas por correo desactivadas</string>
 
-    <string name="nav_devices">Dispositivos</string>
-    <string name="devices_title">Dispositivos</string>
+    <string name="nav_devices">Mis dispositivos</string>
+    <string name="devices_title">Mis dispositivos</string>
     <string name="devices_empty">Aún no hay dispositivos registrados.</string>
     <string name="devices_hint">Toca una tarjeta para seleccionar el dispositivo y abrir sus controles de suscriptor.</string>
     <string name="devices_limit_note">Aquí se muestran hasta 10 dispositivos registrados.</string>
     <string name="devices_page_summary">%1$d dispositivos · %2$d en línea</string>
+    <string name="device_selected_current">✓ Seleccionado ahora</string>
     <string name="device_mac_format">MAC · %1$s</string>
 </resources>
