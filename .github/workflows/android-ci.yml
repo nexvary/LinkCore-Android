@@ -108,7 +108,7 @@ jobs:
           grep -q 'Amazon Alexa · جاهزة عبر Home Assistant' app/src/main/res/values-ar/strings.xml
           grep -q 'Google Home · READY via Home Assistant' app/src/main/res/values/strings.xml
           grep -q 'Matter · Bridge reserved / not enabled yet' app/src/main/res/values/strings.xml
-          grep -q 'nexvary/LinkCore-Android' home_assistant/custom_components/fg_machines_rck/manifest.json
+          ! grep -RniE 'nexvary|github\\.com/nexvary' home_assistant app docs README.md LICENSE
 
       - name: Verify side-by-side package identity
         shell: bash
