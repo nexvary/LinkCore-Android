@@ -710,4 +710,15 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="devices_page_summary">%1$d أجهزة · %2$d متصل</string>
     <string name="device_selected_current">✓ المحدد حاليًا</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">منظومة المنزل الذكي</string>
+    <string name="ecosystem_note">طبقة ربط واحدة لـ Home Assistant وAlexa وGoogle Home وMatter بدون تغيير مسار تحكم MTTL الموثق.</string>
+    <string name="ecosystem_summary_waiting">جارٍ فحص مسارات الربط…</string>
+    <string name="ecosystem_summary_format">%1$d من %2$d مسارات جاهزة · جسر Matter محجوز</string>
+    <string name="ecosystem_home_assistant">Home Assistant · جسر محلي جاهز</string>
+    <string name="ecosystem_alexa">Amazon Alexa · جاهزة عبر Home Assistant</string>
+    <string name="ecosystem_google_home">Google Home · جاهز عبر Home Assistant</string>
+    <string name="ecosystem_matter">Matter · البنية محجوزة ولم يتم تفعيلها بعد</string>
+    <string name="ecosystem_setup_button">إعداد جسر Home Assistant</string>
+    <string name="ecosystem_setup_hint">أنشئ رمز Home Assistant من هنا، ثم اربط Home Assistant مع Alexa أو Google Home.</string>
 </resources>

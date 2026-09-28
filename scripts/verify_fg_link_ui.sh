@@ -60,17 +60,17 @@ capture_page() {
   echo "Captured $output ($size bytes)"
 }
 
-# Every image below is rendered by the actual 1.6.3 sidecar APK's Android
+# Every image below is rendered by the actual 1.6.8 sidecar APK's Android
 # view hierarchy, not a mockup and not the hosted emulator framebuffer.
-capture_page dashboard       dashboard       FG-Link-1.6.3-dashboard.png
-capture_page setup           setup           FG-Link-1.6.3-setup.png
-capture_page scan            scan            FG-Link-1.6.3-scan.png
-capture_page settings        settings        FG-Link-1.6.3-settings.png
-capture_page subscriber      subscriber      FG-Link-1.6.3-subscriber.png
-capture_page about           about           FG-Link-1.6.3-about.png
-capture_page remote_ac       remote-ac       FG-Link-1.6.3-remote-ac.png
-capture_page remote_fan      remote-fan      FG-Link-1.6.3-remote-fan.png
-capture_page diagnostics     diagnostics     FG-Link-1.6.3-diagnostics.png
-capture_page network_doctor  network-doctor  FG-Link-1.6.3-network-doctor.png
+capture_page dashboard       dashboard       FG-Link-1.6.8-dashboard.png
+capture_page setup           setup           FG-Link-1.6.8-setup.png
+capture_page scan            scan            FG-Link-1.6.8-scan.png
+capture_page settings        settings        FG-Link-1.6.8-settings.png
+capture_page subscriber      subscriber      FG-Link-1.6.8-subscriber.png
+capture_page about           about           FG-Link-1.6.8-about.png
+capture_page remote_ac       remote-ac       FG-Link-1.6.8-remote-ac.png
+capture_page remote_fan      remote-fan      FG-Link-1.6.8-remote-fan.png
+capture_page diagnostics     diagnostics     FG-Link-1.6.8-diagnostics.png
+capture_page network_doctor  network-doctor  FG-Link-1.6.8-network-doctor.png
 
 echo "FG Link complete real-page screenshot gallery passed."

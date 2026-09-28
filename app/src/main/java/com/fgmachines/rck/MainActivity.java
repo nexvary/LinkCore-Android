@@ -366,6 +366,7 @@ public class MainActivity extends AppCompatActivity {
         controllerIntent.setAction(MttlControllerService.ACTION_START);
         ContextCompat.startForegroundService(this, controllerIntent);
         configurePlatformHub();
+        configureEcosystemBridge();
         configureLanguageSelector();
         configureSetupModeSelector();
         configureOutletControls();
@@ -700,6 +701,26 @@ public class MainActivity extends AppCompatActivity {
             Snackbar.make(hubStatus, R.string.platform_planned_panel, Snackbar.LENGTH_LONG).show();
             showPage(1);
         });
+    }
+
+    private void configureEcosystemBridge() {
+        TextView status = findViewById(R.id.ecosystemStatus);
+        if (status != null) {
+            status.setText(getString(
+                    R.string.ecosystem_summary_format,
+                    SmartHomeEcosystemCatalog.readyRoutes(),
+                    SmartHomeEcosystemCatalog.totalRoutes()));
+        }
+
+        MaterialButton setupButton = findViewById(R.id.ecosystemSetupButton);
+        if (setupButton != null) {
+            setupButton.setOnClickListener(v -> {
+                showPage(3);
+                scrollToSection(R.id.pageSettings, R.id.sharingCard);
+                Snackbar.make(setupButton, R.string.ecosystem_setup_hint,
+                        Snackbar.LENGTH_LONG).show();
+            });
+        }
     }
 
     private void scrollToSection(int scrollViewId, int sectionId) {

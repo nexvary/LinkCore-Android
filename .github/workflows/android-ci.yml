@@ -97,6 +97,19 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Smart Home ecosystem bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'configureEcosystemBridge();' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'SmartHomeEcosystemCatalog.readyRoutes()' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'android:id="@+id/ecosystemSetupButton"' app/src/main/res/layout/activity_main.xml
+          grep -q 'android:id="@+id/sharingCard"' app/src/main/res/layout/activity_main.xml
+          grep -q 'Amazon Alexa · جاهزة عبر Home Assistant' app/src/main/res/values-ar/strings.xml
+          grep -q 'Google Home · READY via Home Assistant' app/src/main/res/values/strings.xml
+          grep -q 'Matter · Bridge reserved / not enabled yet' app/src/main/res/values/strings.xml
+          grep -q 'nexvary/LinkCore-Android' home_assistant/custom_components/fg_machines_rck/manifest.json
+
       - name: Verify side-by-side package identity
         shell: bash
         run: |
@@ -106,7 +119,7 @@ jobs:
           APK="app/build/outputs/apk/sidecar/app-sidecar.apk"
           "$AAPT" dump badging "$APK" | tee /tmp/sidecar-badging.txt
           grep -q "package: name='com.fgmachines.rck.sidecar163'" /tmp/sidecar-badging.txt
-          grep -q "application-label:'FG Link 1.6.7 Test'" /tmp/sidecar-badging.txt
+          grep -q "application-label:'FG Link 1.6.8 Test'" /tmp/sidecar-badging.txt
 
       - name: Verify ARM64 fast-install package
         shell: bash
@@ -118,7 +131,7 @@ jobs:
           test -n "$APK"
           "$AAPT" dump badging "$APK" | tee /tmp/arm64-badging.txt
           grep -q "package: name='com.fgmachines.rck.sidecar163arm64'" /tmp/arm64-badging.txt
-          grep -q "application-label:'FG Link 1.6.7 Fast'" /tmp/arm64-badging.txt
+          grep -q "application-label:'FG Link 1.6.8 Fast'" /tmp/arm64-badging.txt
           if unzip -l "$APK" | grep -E 'lib/(x86|x86_64|armeabi-v7a)/'; then
             echo "Unexpected non-ARM64 native library found."
             exit 1
@@ -169,21 +182,21 @@ jobs:
       - name: Upload isolated debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.7-debug
+          name: FG-Link-1.6.8-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - name: Upload side-by-side 1.6.7 APK
+      - name: Upload side-by-side 1.6.8 APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.7-side-by-side
+          name: FG-Link-1.6.8-side-by-side
           path: app/build/outputs/apk/sidecar/app-sidecar.apk
           if-no-files-found: error
 
       - name: Upload ARM64 fast-install APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.7-ARM64-Fast
+          name: FG-Link-1.6.8-ARM64-Fast
           path: app/build/outputs/apk/sidecarArm64/*.apk
           if-no-files-found: error
 
@@ -203,13 +216,13 @@ jobs:
       - name: Download isolated debug APK
         uses: actions/download-artifact@v4
         with:
-          name: FG-Link-1.6.7-debug
+          name: FG-Link-1.6.8-debug
           path: apk-debug
 
       - name: Download side-by-side APK
         uses: actions/download-artifact@v4
         with:
-          name: FG-Link-1.6.7-side-by-side
+          name: FG-Link-1.6.8-side-by-side
           path: apk-sidecar
 
       - name: Capture and verify dashboard + About branding
@@ -224,7 +237,7 @@ jobs:
       - name: Upload real UI screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.7-ui-screenshots
+          name: FG-Link-1.6.8-ui-screenshots
           path: FG-Link-1.6.6-*.png
           if-no-files-found: error
 
