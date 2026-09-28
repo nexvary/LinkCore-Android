@@ -12,13 +12,13 @@ import java.util.regex.Pattern;
  * Frames are UTF-8/ASCII text terminated with CRLF on the controller connection.
  */
 public final class MttlProtocol {
-    public static final String GET_INFO = "up:getinfo:all";
+    public static final String GET_INFO = WireCodec.getInfoAll();
 
     private static final Pattern BOOT_INFO = Pattern.compile(
-            "^up:bootinfo:([^;\\r\\n]{1,32});([0-9A-Fa-f]{12});([0-9A-Fa-f]{12});([^;\\r\\n]{1,64});connect$"
+            WireCodec.bootPattern()
     );
     private static final Pattern ON_OFF = Pattern.compile(
-            "^up:(?:event:)?onoff:([1-4]):(on|off)$",
+            WireCodec.onOffPattern(),
             Pattern.CASE_INSENSITIVE
     );
 
@@ -28,7 +28,7 @@ public final class MttlProtocol {
         if (outlet < 1 || outlet > 4) {
             throw new IllegalArgumentException("Outlet index must be 1..4");
         }
-        return "up:onoff:" + outlet + ":" + (on ? "on" : "off");
+        return WireCodec.onOffPrefix() + outlet + ":" + (on ? WireCodec.on() : WireCodec.off());
     }
 
     public static BootInfo parseBootInfo(String frame) {
@@ -46,14 +46,14 @@ public final class MttlProtocol {
         Matcher matcher = ON_OFF.matcher(frame.trim());
         if (!matcher.matches()) return null;
         int outlet = Integer.parseInt(matcher.group(1));
-        boolean on = "on".equalsIgnoreCase(matcher.group(2));
+        boolean on = WireCodec.on().equalsIgnoreCase(matcher.group(2));
         return new OutletState(outlet, on);
     }
 
     public static Telemetry parseGetInfo(String frame) {
         if (frame == null) return null;
         String trimmed = frame.trim();
-        String prefix = "up:getinfo:";
+        String prefix = WireCodec.getInfoPrefix();
         if (!trimmed.startsWith(prefix)) return null;
 
         String[] parts = trimmed.substring(prefix.length()).split(":", -1);
@@ -114,8 +114,8 @@ public final class MttlProtocol {
     }
 
     private static Boolean parseBoolean(String value) {
-        if ("on".equalsIgnoreCase(value)) return Boolean.TRUE;
-        if ("off".equalsIgnoreCase(value)) return Boolean.FALSE;
+        if (WireCodec.on().equalsIgnoreCase(value)) return Boolean.TRUE;
+        if (WireCodec.off().equalsIgnoreCase(value)) return Boolean.FALSE;
         return null;
     }
 
