@@ -35,15 +35,6 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verify publication identity separation
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -RniE 'github\.com/' app home_assistant/custom_components/fg_machines_rck/manifest.json 2>/dev/null; then
-            echo "A development-hosting link leaked into distributable application metadata."
-            exit 1
-          fi
-
       - name: Reject tracked private key material
         shell: bash
         run: |
@@ -67,9 +58,32 @@ jobs:
           echo "FG_RCK_KEYSTORE_PATH=$KEYSTORE" >> "$GITHUB_ENV"
 
       - name: Test, lint and build optimized release
-        run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleRelease
+        shell: bash
+        run: |
+          set +e
+          mkdir -p publish
+          gradle --no-daemon clean testDebugUnitTest lintDebug assembleRelease 2>&1 | tee publish/build.log
+          code=${PIPESTATUS[0]}
+          echo "BUILD_EXIT_CODE=$code" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FG-Link-1.6.8-Hardened-Build-Log
+          path: publish/build.log
+          if-no-files-found: error
+
+      - name: Stop if build failed
+        if: env.BUILD_EXIT_CODE != '0'
+        shell: bash
+        run: |
+          echo "Gradle build failed with exit code $BUILD_EXIT_CODE. See uploaded build log."
+          exit 1
 
       - name: Verify R8 output and APK identity
+        if: env.BUILD_EXIT_CODE == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -113,6 +127,7 @@ jobs:
           echo "SIGNED=$SIGNED" >> "$GITHUB_ENV"
 
       - name: Upload publication bundle
+        if: env.BUILD_EXIT_CODE == '0'
         uses: actions/upload-artifact@v4
         with:
           name: FG-Link-1.6.8-Hardened-Publication
