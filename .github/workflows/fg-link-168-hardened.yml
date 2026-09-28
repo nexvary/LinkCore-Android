@@ -1,0 +1,120 @@
+name: FG Link 1.6.8 Hardened Release
+
+on:
+  push:
+    branches:
+      - release/1.6.8-hardened-fg
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hardened-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FG_RCK_KEYSTORE_B64: ${{ secrets.FG_RCK_KEYSTORE_B64 }}
+      FG_RCK_KEYSTORE_PASSWORD: ${{ secrets.FG_RCK_KEYSTORE_PASSWORD }}
+      FG_RCK_KEY_ALIAS: ${{ secrets.FG_RCK_KEY_ALIAS }}
+      FG_RCK_KEY_PASSWORD: ${{ secrets.FG_RCK_KEY_PASSWORD }}
+      FG_RCK_CERT_SHA256: ${{ secrets.FG_RCK_CERT_SHA256 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify publication identity separation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'nexvary|github\.com/nexvary' app home_assistant docs README.md LICENSE scripts 2>/dev/null; then
+            echo "Internal development identity leaked into publication tree."
+            exit 1
+          fi
+
+      - name: Reject tracked private key material
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '\.(jks|keystore|p12|pfx|pem|key|pk8)$|(^|/)\.env$'; then
+            echo "Private signing material or environment secrets must not be tracked."
+            exit 1
+          fi
+
+      - name: Prepare optional official signing key
+        if: env.FG_RCK_KEYSTORE_B64 != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FG_RCK_KEYSTORE_PASSWORD"
+          test -n "$FG_RCK_KEY_ALIAS"
+          test -n "$FG_RCK_KEY_PASSWORD"
+          KEYSTORE="$RUNNER_TEMP/fg-link-official.keystore"
+          printf '%s' "$FG_RCK_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          echo "FG_RCK_KEYSTORE_PATH=$KEYSTORE" >> "$GITHUB_ENV"
+
+      - name: Test, lint and build optimized release
+        run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleRelease
+
+      - name: Verify R8 output and APK identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/mapping/release/mapping.txt
+          APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$AAPT"
+          test -n "$APKSIGNER"
+
+          "$AAPT" dump badging "$APK" | tee /tmp/fg-link-badging.txt
+          grep -q "package: name='com.fgmachines.rck' versionCode='36' versionName='1.6.8'" /tmp/fg-link-badging.txt
+          grep -q "application-label:'FG Link'" /tmp/fg-link-badging.txt
+
+          unzip -p "$APK" 'classes*.dex' 2>/dev/null | strings > /tmp/fg-link-dex-strings.txt || true
+          if grep -qiE 'nexvary|github\.com/nexvary' /tmp/fg-link-dex-strings.txt; then
+            echo "Internal account reference found inside APK."
+            exit 1
+          fi
+          if grep -qE 'MttlProtocol|MttlProvisioner|MttlControllerServer|WireCodec' /tmp/fg-link-dex-strings.txt; then
+            echo "Sensitive implementation class names remain visible after R8."
+            exit 1
+          fi
+
+          SIGNED=false
+          if "$APKSIGNER" verify "$APK" >/dev/null 2>&1; then
+            SIGNED=true
+            "$APKSIGNER" verify --print-certs "$APK" | tee /tmp/fg-link-cert.txt
+            if [ -n "$FG_RCK_CERT_SHA256" ]; then
+              ACTUAL="$(grep -i 'certificate SHA-256 digest' /tmp/fg-link-cert.txt | head -n 1 | awk '{print $NF}' | tr 'A-F' 'a-f' | tr -d ':')"
+              EXPECTED="$(printf '%s' "$FG_RCK_CERT_SHA256" | tr 'A-F' 'a-f' | tr -d ':')"
+              test "$ACTUAL" = "$EXPECTED"
+            fi
+          fi
+
+          mkdir -p publish
+          cp "$APK" publish/FG-Link-1.6.8-Hardened.apk
+          sha256sum publish/FG-Link-1.6.8-Hardened.apk | tee publish/SHA256SUMS.txt
+          printf 'FG Link 1.6.8 Hardened\nPackage: com.fgmachines.rck\nVersion code: 36\nR8 optimized: yes\nSigned: %s\nPublisher: FG Machines\n' "$SIGNED" > publish/RELEASE-INFO.txt
+          echo "SIGNED=$SIGNED" >> "$GITHUB_ENV"
+
+      - name: Upload publication bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: FG-Link-1.6.8-Hardened-Publication
+          path: publish/
+          if-no-files-found: error
