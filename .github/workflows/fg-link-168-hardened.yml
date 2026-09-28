@@ -100,8 +100,8 @@ jobs:
           grep -q "application-label:'FG Link'" /tmp/fg-link-badging.txt
 
           unzip -p "$APK" 'classes*.dex' 2>/dev/null | strings > /tmp/fg-link-dex-strings.txt || true
-          if grep -qiE 'nexvary|github\.com/nexvary' /tmp/fg-link-dex-strings.txt; then
-            echo "Internal account reference found inside APK."
+          if grep -qiE 'github\.com/' /tmp/fg-link-dex-strings.txt; then
+            echo "Development-hosting reference found inside APK."
             exit 1
           fi
           if grep -qE 'MttlProtocol|MttlProvisioner|MttlControllerServer|WireCodec' /tmp/fg-link-dex-strings.txt; then
