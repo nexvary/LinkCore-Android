@@ -1791,7 +1791,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private int dp(int value) {        private int dp(int value) {
+    private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
