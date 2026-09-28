@@ -119,7 +119,7 @@ public final class MttlControllerServer implements Closeable {
                     pendingGetInfo = null;
                 } else {
                     frame = line.trim();
-                    if (frame.startsWith("up:getinfo:") && MttlProtocol.parseGetInfo(frame) == null) {
+                    if (frame.startsWith(WireCodec.getInfoPrefix()) && MttlProtocol.parseGetInfo(frame) == null) {
                         pendingGetInfo = frame;
                         continue;
                     }
