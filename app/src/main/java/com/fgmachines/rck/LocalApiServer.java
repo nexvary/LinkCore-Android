@@ -163,6 +163,11 @@ public final class LocalApiServer implements Closeable {
                 item.put("firmware", live != null ? live.firmwareVersion : record.firmware);
                 item.put("connected", live != null && live.connected);
                 item.put("last_seen", record.lastSeenAt);
+                JSONArray outletNames = new JSONArray();
+                for (int outlet = 1; outlet <= 4; outlet++) {
+                    outletNames.put(fleet.outletName(record.mac, outlet));
+                }
+                item.put("outlet_names", outletNames);
                 if (live != null) {
                     item.put("connected_since", live.connectedSince);
                     item.put("remote_address", live.remoteAddress);

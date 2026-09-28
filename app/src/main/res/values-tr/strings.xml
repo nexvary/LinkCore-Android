@@ -700,11 +700,24 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="email_alerts_enabled">E-posta uyarıları etkin</string>
     <string name="email_alerts_disabled">E-posta uyarıları devre dışı</string>
 
-    <string name="nav_devices">Cihazlar</string>
-    <string name="devices_title">Cihazlar</string>
+    <string name="nav_devices">Cihazlarım</string>
+    <string name="devices_title">Cihazlarım</string>
     <string name="devices_empty">Henüz kayıtlı cihaz yok.</string>
     <string name="devices_hint">Cihazı seçmek ve abone denetimlerini açmak için karta dokunun.</string>
     <string name="devices_limit_note">Burada en fazla 10 kayıtlı cihaz gösterilir.</string>
     <string name="devices_page_summary">%1$d cihaz · %2$d çevrimiçi</string>
+    <string name="device_selected_current">✓ Şu anda seçili</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Akıllı Ev Ekosistemleri</string>
+    <string name="ecosystem_note">Doğrulanmış MTTL kontrol yolunu değiştirmeden Home Assistant, Alexa, Google Home ve Matter için tek köprü katmanı.</string>
+    <string name="ecosystem_summary_waiting">Ekosistem yolları denetleniyor…</string>
+    <string name="ecosystem_summary_format">%1$d/%2$d üretim yolu hazır · Matter Windows Bridge beta</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Yerel köprü HAZIR</string>
+    <string name="ecosystem_alexa">Amazon Alexa · Home Assistant üzerinden HAZIR</string>
+    <string name="ecosystem_google_home">Google Home · Home Assistant üzerinden HAZIR</string>
+    <string name="ecosystem_matter">Matter · Windows Bridge BETA gerçek eşleştirme testine hazır</string>
+    <string name="ecosystem_setup_button">Home Assistant köprüsünü kur</string>
+    <string name="ecosystem_setup_hint">Burada bir Home Assistant belirteci oluşturun, ardından Home Assistant’ı Alexa veya Google Home’a bağlayın.</string>
+    <string name="ecosystem_matter_button">Windows Matter Bridge · Beta</string>
 </resources>

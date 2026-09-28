@@ -7,6 +7,22 @@ on:
     branches: [ main ]
 
 jobs:
+  security-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan full Git history for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -85,13 +101,32 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'private LinearLayout devicesGrid;' app/src/main/java/com/fgmachines/rck/MainActivity.java
-          grep -q 'row.setWeightSum(2f);' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'row.setWeightSum(DeviceGridPolicy.COLUMNS);' app/src/main/java/com/fgmachines/rck/MainActivity.java
           grep -q 'LinearLayout.LayoutParams.WRAP_CONTENT, 1f' app/src/main/java/com/fgmachines/rck/MainActivity.java
           grep -q 'android:id="@+id/devicesGrid"' app/src/main/res/layout/activity_main.xml
+          grep -q 'DeviceGridPolicy.visibleCount(records.size())' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'final String targetMac = FleetStore.normalizeMac(activeMac);' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q '<string name="nav_devices">أجهزتي</string>' app/src/main/res/values-ar/strings.xml
+          grep -q '<string name="device_selected_current">' app/src/main/res/values/strings.xml
           if grep -B2 -A8 'android:id="@+id/devicesGrid"' app/src/main/res/layout/activity_main.xml | grep -q '<GridLayout'; then
             echo "Devices page must not use GridLayout; it regressed the 2x5 phone layout."
             exit 1
           fi
+
+      - name: Verify Smart Home ecosystem bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'configureEcosystemBridge();' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'SmartHomeEcosystemCatalog.readyRoutes()' app/src/main/java/com/fgmachines/rck/MainActivity.java
+          grep -q 'android:id="@+id/ecosystemSetupButton"' app/src/main/res/layout/activity_main.xml
+          grep -q 'android:id="@+id/sharingCard"' app/src/main/res/layout/activity_main.xml
+          grep -q 'Amazon Alexa · جاهزة عبر Home Assistant' app/src/main/res/values-ar/strings.xml
+          grep -q 'Google Home · READY via Home Assistant' app/src/main/res/values/strings.xml
+          grep -q 'Matter · Windows Bridge BETA ready for real pairing test' app/src/main/res/values/strings.xml
+          grep -q 'android:id="@+id/ecosystemMatterButton"' app/src/main/res/layout/activity_main.xml
+          grep -q 'item.put("outlet_names", outletNames);' app/src/main/java/com/fgmachines/rck/LocalApiServer.java
+          grep -q 'nexvary/LinkCore-Android' home_assistant/custom_components/fg_machines_rck/manifest.json
 
       - name: Verify side-by-side package identity
         shell: bash
@@ -102,7 +137,7 @@ jobs:
           APK="app/build/outputs/apk/sidecar/app-sidecar.apk"
           "$AAPT" dump badging "$APK" | tee /tmp/sidecar-badging.txt
           grep -q "package: name='com.fgmachines.rck.sidecar163'" /tmp/sidecar-badging.txt
-          grep -q "application-label:'FG Link 1.6.6 Test'" /tmp/sidecar-badging.txt
+          grep -q "application-label:'FG Link 1.6.9 Test'" /tmp/sidecar-badging.txt
 
       - name: Verify ARM64 fast-install package
         shell: bash
@@ -114,7 +149,7 @@ jobs:
           test -n "$APK"
           "$AAPT" dump badging "$APK" | tee /tmp/arm64-badging.txt
           grep -q "package: name='com.fgmachines.rck.sidecar163arm64'" /tmp/arm64-badging.txt
-          grep -q "application-label:'FG Link 1.6.6 Fast'" /tmp/arm64-badging.txt
+          grep -q "application-label:'FG Link 1.6.9 Fast'" /tmp/arm64-badging.txt
           if unzip -l "$APK" | grep -E 'lib/(x86|x86_64|armeabi-v7a)/'; then
             echo "Unexpected non-ARM64 native library found."
             exit 1
@@ -165,21 +200,21 @@ jobs:
       - name: Upload isolated debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.6-debug
+          name: FG-Link-1.6.9-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - name: Upload side-by-side 1.6.6 APK
+      - name: Upload side-by-side 1.6.9 APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.6-side-by-side
+          name: FG-Link-1.6.9-side-by-side
           path: app/build/outputs/apk/sidecar/app-sidecar.apk
           if-no-files-found: error
 
       - name: Upload ARM64 fast-install APK
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.6-ARM64-Fast
+          name: FG-Link-1.6.9-ARM64-Fast
           path: app/build/outputs/apk/sidecarArm64/*.apk
           if-no-files-found: error
 
@@ -199,13 +234,13 @@ jobs:
       - name: Download isolated debug APK
         uses: actions/download-artifact@v4
         with:
-          name: FG-Link-1.6.6-debug
+          name: FG-Link-1.6.9-debug
           path: apk-debug
 
       - name: Download side-by-side APK
         uses: actions/download-artifact@v4
         with:
-          name: FG-Link-1.6.6-side-by-side
+          name: FG-Link-1.6.9-side-by-side
           path: apk-sidecar
 
       - name: Capture and verify dashboard + About branding
@@ -220,8 +255,64 @@ jobs:
       - name: Upload real UI screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: FG-Link-1.6.6-ui-screenshots
+          name: FG-Link-1.6.9-ui-screenshots
           path: FG-Link-1.6.6-*.png
+          if-no-files-found: error
+
+
+  matter-bridge-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Matter bridge development dependencies
+        shell: pwsh
+        working-directory: matter_bridge
+        run: npm install --no-fund --no-audit
+
+      - name: Typecheck, test and build Matter bridge
+        shell: pwsh
+        working-directory: matter_bridge
+        run: npm run verify
+
+      - name: Validate Windows scripts and package contents
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Test-Path matter_bridge\dist\module.js | Should -BeTrue
+          Test-Path matter_bridge\dist\fg-link-api.js | Should -BeTrue
+          Test-Path matter_bridge\scripts\Install-FGLinkMatterBridge.ps1 | Should -BeTrue
+          Test-Path matter_bridge\scripts\Start-FGLinkMatterBridge.ps1 | Should -BeTrue
+          Test-Path matter_bridge\scripts\Doctor-FGLink.ps1 | Should -BeTrue
+          Select-String -Path matter_bridge\src\module.ts -Pattern "onOffPlugInUnit" -Quiet | Should -BeTrue
+          Select-String -Path matter_bridge\src\fg-link-api.ts -Pattern "/api/v1/devices/" -Quiet | Should -BeTrue
+
+      - name: Create Windows beta ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stage = Join-Path $env:RUNNER_TEMP "FG-Link-Matter-Bridge-Windows"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item matter_bridge\dist $stage\dist -Recurse
+          Copy-Item matter_bridge\scripts $stage\scripts -Recurse
+          Copy-Item matter_bridge\package.json $stage
+          Copy-Item matter_bridge\README.md $stage
+          Copy-Item matter_bridge\matterbridge-fg-link.config.json $stage
+          Copy-Item matter_bridge\matterbridge-fg-link.schema.json $stage
+          Compress-Archive -Path "$stage\*" -DestinationPath "$env:GITHUB_WORKSPACE\FG-Link-Matter-Bridge-Windows-1.6.9.zip" -Force
+
+      - name: Upload Windows Matter Bridge beta
+        uses: actions/upload-artifact@v4
+        with:
+          name: FG-Link-Matter-Bridge-Windows-1.6.9
+          path: FG-Link-Matter-Bridge-Windows-1.6.9.zip
           if-no-files-found: error
 
 

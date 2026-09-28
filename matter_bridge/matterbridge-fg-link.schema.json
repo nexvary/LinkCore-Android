@@ -1,0 +1,54 @@
+{
+  "title": "FG Link Matter Bridge",
+  "description": "Expose FG Link / MTTL-W01 outlets to Matter through the authenticated local API.",
+  "type": "object",
+  "required": ["apiUrl", "token"],
+  "properties": {
+    "name": {
+      "title": "Plugin Name",
+      "type": "string",
+      "readOnly": true,
+      "ui:widget": "hidden"
+    },
+    "type": {
+      "title": "Plugin Type",
+      "type": "string",
+      "readOnly": true,
+      "ui:widget": "hidden"
+    },
+    "apiUrl": {
+      "title": "FG Link API URL",
+      "description": "Example: http://192.168.1.25:18086",
+      "type": "string",
+      "default": "http://192.168.1.2:18086"
+    },
+    "token": {
+      "title": "FG Link CONTROL Token",
+      "description": "Create it in FG Link under Users, Sharing & Home Assistant.",
+      "type": "string",
+      "ui:widget": "password"
+    },
+    "pollIntervalSeconds": {
+      "title": "Refresh interval",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 60,
+      "default": 5
+    },
+    "exposeOfflineDevices": {
+      "title": "Keep offline devices visible",
+      "type": "boolean",
+      "default": true
+    },
+    "debug": {
+      "title": "Enable Debug",
+      "type": "boolean",
+      "default": false
+    },
+    "unregisterOnShutdown": {
+      "title": "Unregister On Shutdown",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

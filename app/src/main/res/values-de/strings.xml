@@ -700,11 +700,24 @@ Leistung %3$.1f W · Energie %4$.3f kWh · Temperatur %5$d°C
     <string name="email_alerts_enabled">E-Mail-Warnungen aktiviert</string>
     <string name="email_alerts_disabled">E-Mail-Warnungen deaktiviert</string>
 
-    <string name="nav_devices">Geräte</string>
-    <string name="devices_title">Geräte</string>
+    <string name="nav_devices">Meine Geräte</string>
+    <string name="devices_title">Meine Geräte</string>
     <string name="devices_empty">Noch keine Geräte registriert.</string>
     <string name="devices_hint">Tippen Sie auf eine Gerätekarte, um sie auszuwählen und die Teilnehmersteuerung zu öffnen.</string>
     <string name="devices_limit_note">Hier werden bis zu 10 registrierte Geräte angezeigt.</string>
     <string name="devices_page_summary">%1$d Geräte · %2$d online</string>
+    <string name="device_selected_current">✓ Aktuell ausgewählt</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Smart-Home-Ökosysteme</string>
+    <string name="ecosystem_note">Eine gemeinsame Bridge-Schicht für Home Assistant, Alexa, Google Home und Matter, ohne den verifizierten MTTL-Steuerpfad zu ändern.</string>
+    <string name="ecosystem_summary_waiting">Ökosystem-Routen werden geprüft…</string>
+    <string name="ecosystem_summary_format">%1$d von %2$d Produktionsrouten bereit · Matter Windows Bridge Beta</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Lokale Bridge BEREIT</string>
+    <string name="ecosystem_alexa">Amazon Alexa · über Home Assistant BEREIT</string>
+    <string name="ecosystem_google_home">Google Home · über Home Assistant BEREIT</string>
+    <string name="ecosystem_matter">Matter · Windows Bridge BETA für echten Pairing-Test bereit</string>
+    <string name="ecosystem_setup_button">Home-Assistant-Bridge einrichten</string>
+    <string name="ecosystem_setup_hint">Hier ein Home-Assistant-Token erstellen und Home Assistant anschließend mit Alexa oder Google Home verbinden.</string>
+    <string name="ecosystem_matter_button">Windows Matter Bridge · Beta</string>
 </resources>

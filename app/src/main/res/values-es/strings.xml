@@ -700,11 +700,24 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="email_alerts_enabled">Alertas por correo activadas</string>
     <string name="email_alerts_disabled">Alertas por correo desactivadas</string>
 
-    <string name="nav_devices">Dispositivos</string>
-    <string name="devices_title">Dispositivos</string>
+    <string name="nav_devices">Mis dispositivos</string>
+    <string name="devices_title">Mis dispositivos</string>
     <string name="devices_empty">Aún no hay dispositivos registrados.</string>
     <string name="devices_hint">Toca una tarjeta para seleccionar el dispositivo y abrir sus controles de suscriptor.</string>
     <string name="devices_limit_note">Aquí se muestran hasta 10 dispositivos registrados.</string>
     <string name="devices_page_summary">%1$d dispositivos · %2$d en línea</string>
+    <string name="device_selected_current">✓ Seleccionado ahora</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Ecosistemas de hogar inteligente</string>
+    <string name="ecosystem_note">Una sola capa de puente para Home Assistant, Alexa, Google Home y Matter sin cambiar la ruta MTTL verificada.</string>
+    <string name="ecosystem_summary_waiting">Comprobando rutas del ecosistema…</string>
+    <string name="ecosystem_summary_format">%1$d de %2$d rutas de producción listas · Matter Windows Bridge beta</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Puente local LISTO</string>
+    <string name="ecosystem_alexa">Amazon Alexa · LISTA mediante Home Assistant</string>
+    <string name="ecosystem_google_home">Google Home · LISTO mediante Home Assistant</string>
+    <string name="ecosystem_matter">Matter · Windows Bridge BETA listo para prueba de emparejamiento real</string>
+    <string name="ecosystem_setup_button">Configurar puente Home Assistant</string>
+    <string name="ecosystem_setup_hint">Crea aquí un token de Home Assistant y después conecta Home Assistant con Alexa o Google Home.</string>
+    <string name="ecosystem_matter_button">Windows Matter Bridge · Beta</string>
 </resources>

@@ -366,6 +366,7 @@ public class MainActivity extends AppCompatActivity {
         controllerIntent.setAction(MttlControllerService.ACTION_START);
         ContextCompat.startForegroundService(this, controllerIntent);
         configurePlatformHub();
+        configureEcosystemBridge();
         configureLanguageSelector();
         configureSetupModeSelector();
         configureOutletControls();
@@ -700,6 +701,32 @@ public class MainActivity extends AppCompatActivity {
             Snackbar.make(hubStatus, R.string.platform_planned_panel, Snackbar.LENGTH_LONG).show();
             showPage(1);
         });
+    }
+
+    private void configureEcosystemBridge() {
+        TextView status = findViewById(R.id.ecosystemStatus);
+        if (status != null) {
+            status.setText(getString(
+                    R.string.ecosystem_summary_format,
+                    SmartHomeEcosystemCatalog.readyRoutes(),
+                    SmartHomeEcosystemCatalog.totalRoutes()));
+        }
+
+        MaterialButton setupButton = findViewById(R.id.ecosystemSetupButton);
+        if (setupButton != null) {
+            setupButton.setOnClickListener(v -> {
+                showPage(3);
+                scrollToSection(R.id.pageSettings, R.id.sharingCard);
+                Snackbar.make(setupButton, R.string.ecosystem_setup_hint,
+                        Snackbar.LENGTH_LONG).show();
+            });
+        }
+
+        MaterialButton matterButton = findViewById(R.id.ecosystemMatterButton);
+        if (matterButton != null) {
+            matterButton.setOnClickListener(v -> openExternalUrl(
+                    "https://github.com/nexvary/LinkCore-Android/tree/main/matter_bridge"));
+        }
     }
 
     private void scrollToSection(int scrollViewId, int sectionId) {
@@ -1623,24 +1650,21 @@ public class MainActivity extends AppCompatActivity {
 
         devicesGrid.removeAllViews();
         List<FleetStore.DeviceRecord> records = fleetStore.list();
-        int shown = Math.min(10, records.size());
+        int shown = DeviceGridPolicy.visibleCount(records.size());
         int online = 0;
 
-        // Build explicit horizontal rows instead of relying on GridLayout sizing.
-        // Every row always owns two equal-weight slots, so a single/odd card can
-        // never expand to full width on OEM Android layouts.
-        for (int rowStart = 0; rowStart < shown; rowStart += 2) {
+        for (int rowStart = 0; rowStart < shown; rowStart += DeviceGridPolicy.COLUMNS) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setWeightSum(2f);
+            row.setWeightSum(DeviceGridPolicy.COLUMNS);
             row.setBaselineAligned(false);
             row.setLayoutParams(new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
 
-            for (int column = 0; column < 2; column++) {
+            for (int column = 0; column < DeviceGridPolicy.COLUMNS; column++) {
                 int index = rowStart + column;
-                int margin = dp(3);
+                int margin = dp(4);
 
                 if (index >= shown) {
                     View spacer = new View(this);
@@ -1655,6 +1679,7 @@ public class MainActivity extends AppCompatActivity {
                 ControllerHub.DeviceState live = controllerHub == null
                         ? null : controllerHub.state(record.mac);
                 boolean connected = live != null && live.connected;
+                boolean selected = activeMac != null && record.mac.equalsIgnoreCase(activeMac);
                 if (connected) online++;
 
                 MaterialCardView card = new MaterialCardView(this);
@@ -1662,46 +1687,74 @@ public class MainActivity extends AppCompatActivity {
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
                 cardParams.setMargins(margin, margin, margin, margin);
                 card.setLayoutParams(cardParams);
-                card.setMinimumHeight(dp(68));
-                card.setRadius(dp(13));
-                card.setCardElevation(dp(1));
-                card.setCardBackgroundColor(getColor(connected
-                        ? R.color.fg_surface_2 : R.color.fg_surface));
-                card.setStrokeWidth(dp(activeMac != null
-                        && record.mac.equalsIgnoreCase(activeMac) ? 3 : 2));
-                card.setStrokeColor(getColor(connected ? R.color.fg_green : R.color.fg_red));
+                card.setMinimumHeight(dp(84));
+                card.setRadius(dp(14));
+                card.setCardElevation(dp(selected ? 4 : 1));
+                card.setCardBackgroundColor(getColor(selected
+                        ? R.color.fg_surface_3
+                        : connected ? R.color.fg_surface_2 : R.color.fg_surface));
+                card.setStrokeWidth(dp(selected ? 3 : 2));
+                card.setStrokeColor(getColor(selected
+                        ? R.color.fg_blue_bright
+                        : connected ? R.color.fg_neon_green : R.color.fg_metal_shadow));
                 card.setClickable(true);
                 card.setFocusable(true);
 
                 LinearLayout body = new LinearLayout(this);
                 body.setOrientation(LinearLayout.VERTICAL);
-                body.setPadding(dp(8), dp(6), dp(8), dp(6));
+                body.setPadding(dp(9), dp(7), dp(9), dp(7));
 
                 String displayName = record.name == null || record.name.trim().isEmpty()
                         ? ModelCatalog.PRIMARY_MODEL : record.name.trim();
                 String room = record.room == null || record.room.trim().isEmpty()
                         ? getString(R.string.room_unassigned) : record.room.trim();
 
+                LinearLayout titleRow = new LinearLayout(this);
+                titleRow.setOrientation(LinearLayout.HORIZONTAL);
+                titleRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+                android.widget.ImageView stripIcon = new android.widget.ImageView(this);
+                stripIcon.setImageResource(R.drawable.ic_nav_strip);
+                stripIcon.setImageTintList(ColorStateList.valueOf(getColor(selected
+                        ? R.color.fg_blue_bright
+                        : connected ? R.color.fg_neon_green : R.color.fg_metal_silver)));
+                LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(22), dp(22));
+                iconParams.setMarginEnd(dp(6));
+                titleRow.addView(stripIcon, iconParams);
+
                 TextView nameView = new TextView(this);
                 nameView.setText(displayName);
                 nameView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 nameView.setTextColor(getColor(R.color.fg_text));
-                nameView.setTextSize(12f);
+                nameView.setTextSize(13f);
                 nameView.setTypeface(nameView.getTypeface(), android.graphics.Typeface.BOLD);
                 nameView.setMaxLines(1);
                 nameView.setEllipsize(TextUtils.TruncateAt.END);
-                body.addView(nameView);
+                titleRow.addView(nameView, new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+                if (selected) {
+                    TextView selectedMark = new TextView(this);
+                    selectedMark.setText("✓");
+                    selectedMark.setTextColor(getColor(R.color.fg_blue_bright));
+                    selectedMark.setTextSize(16f);
+                    selectedMark.setTypeface(selectedMark.getTypeface(),
+                            android.graphics.Typeface.BOLD);
+                    selectedMark.setPaddingRelative(dp(4), 0, 0, 0);
+                    titleRow.addView(selectedMark);
+                }
+                body.addView(titleRow);
 
                 LinearLayout metaRow = new LinearLayout(this);
                 metaRow.setOrientation(LinearLayout.HORIZONTAL);
                 metaRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                metaRow.setPadding(0, dp(2), 0, 0);
+                metaRow.setPadding(0, dp(3), 0, 0);
 
                 TextView roomView = new TextView(this);
                 roomView.setText(room);
                 roomView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 roomView.setTextColor(getColor(R.color.fg_text_secondary));
-                roomView.setTextSize(9f);
+                roomView.setTextSize(9.5f);
                 roomView.setMaxLines(1);
                 roomView.setEllipsize(TextUtils.TruncateAt.END);
                 metaRow.addView(roomView, new LinearLayout.LayoutParams(
@@ -1710,8 +1763,9 @@ public class MainActivity extends AppCompatActivity {
                 TextView statusView = new TextView(this);
                 statusView.setText(connected ? R.string.fleet_online : R.string.fleet_offline);
                 statusView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
-                statusView.setTextColor(getColor(connected ? R.color.fg_green : R.color.fg_red));
-                statusView.setTextSize(9f);
+                statusView.setTextColor(getColor(connected
+                        ? R.color.fg_neon_green : R.color.fg_silver_dark));
+                statusView.setTextSize(9.5f);
                 statusView.setTypeface(statusView.getTypeface(), android.graphics.Typeface.BOLD);
                 statusView.setMaxLines(1);
                 statusView.setPaddingRelative(dp(3), 0, 0, 0);
@@ -1722,11 +1776,23 @@ public class MainActivity extends AppCompatActivity {
                 macView.setText(getString(R.string.device_mac_format, record.mac));
                 macView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 macView.setTextColor(getColor(R.color.fg_silver_dark));
-                macView.setTextSize(7.5f);
+                macView.setTextSize(8f);
                 macView.setMaxLines(1);
                 macView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
                 macView.setPadding(0, dp(2), 0, 0);
                 body.addView(macView);
+
+                if (selected) {
+                    TextView selectedView = new TextView(this);
+                    selectedView.setText(R.string.device_selected_current);
+                    selectedView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+                    selectedView.setTextColor(getColor(R.color.fg_blue_bright));
+                    selectedView.setTextSize(8.5f);
+                    selectedView.setTypeface(selectedView.getTypeface(),
+                            android.graphics.Typeface.BOLD);
+                    selectedView.setPadding(0, dp(2), 0, 0);
+                    body.addView(selectedView);
+                }
 
                 card.setContentDescription(displayName + ", " + room + ", "
                         + getString(connected ? R.string.fleet_online : R.string.fleet_offline));
@@ -1737,7 +1803,6 @@ public class MainActivity extends AppCompatActivity {
                 });
                 row.addView(card);
             }
-
             devicesGrid.addView(row);
         }
 
@@ -1748,12 +1813,12 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 devicesPageSummary.setText(getString(R.string.devices_page_summary, shown, online));
                 devicesPageSummary.setTextColor(getColor(online > 0
-                        ? R.color.fg_green : R.color.fg_silver_dark));
+                        ? R.color.fg_neon_green : R.color.fg_silver_dark));
             }
         }
     }
 
-        private int dp(int value) {
+    private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
@@ -1778,9 +1843,21 @@ public class MainActivity extends AppCompatActivity {
     private void selectFleetDevice(String mac) {
         String key = FleetStore.normalizeMac(mac);
         if (key.isEmpty()) return;
+
         activeMac = key;
         fleetStore.select(key);
         migrateLegacyLabelsIfNeeded(key);
+
+        applyingDeviceState = true;
+        try {
+            clearTelemetryUi();
+            for (MaterialButton outletSwitch : outletSwitches) {
+                if (outletSwitch != null) outletSwitch.setChecked(false);
+            }
+        } finally {
+            applyingDeviceState = false;
+        }
+
         ControllerHub.DeviceState state = controllerHub.state(key);
         activeFirmwareVersion = state == null ? null : state.firmwareVersion;
         applyDeviceNames();
@@ -1813,12 +1890,12 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             setOutletControlsEnabled(false);
-            clearTelemetryUi();
             deviceState.setText(R.string.controller_disconnected);
-            deviceState.setTextColor(getColor(R.color.fg_red));
+            deviceState.setTextColor(getColor(R.color.fg_silver));
         }
         updateFleetStatus();
         refreshFleetOverviewAndList();
+        refreshDeviceCards();
         refreshUsbDiscoveryStatus();
         refreshScenes();
         refreshHistory();
@@ -3271,11 +3348,12 @@ public class MainActivity extends AppCompatActivity {
             outletSwitches[i].addOnCheckedChangeListener((button, checked) -> {
                 updateOutletCardState(index, checked);
                 if (applyingDeviceState || !button.isEnabled()) return;
-                String mac = activeMac;
-                if (mac == null || controllerHub == null) return;
+                final String targetMac = FleetStore.normalizeMac(activeMac);
+                if (targetMac.isEmpty() || controllerHub == null
+                        || !controllerHub.isConnected(targetMac)) return;
                 commandWorker.execute(() -> {
                     try {
-                        smartHomePlatform.setSwitch(mac, outlet, checked);
+                        smartHomePlatform.setSwitch(targetMac, outlet, checked);
                     } catch (IOException error) {
                         runOnUiThread(() -> Snackbar.make(scanButton,
                                 getString(R.string.command_failed, safeMessage(error)), Snackbar.LENGTH_LONG).show());
@@ -3344,35 +3422,32 @@ public class MainActivity extends AppCompatActivity {
 
             @Override public void onDeviceDisconnected(String mac) {
                 String key = FleetStore.normalizeMac(mac);
-                boolean selectedDisconnected = key.equalsIgnoreCase(activeMac == null ? "" : activeMac);
-                if (selectedDisconnected) {
-                    List<ControllerHub.DeviceState> connected = controllerHub.connectedStates();
-                    if (connected.isEmpty()) {
-                        activeMac = null;
-                        activeFirmwareVersion = null;
-                    } else {
-                        activeMac = connected.get(0).mac;
-                        activeFirmwareVersion = connected.get(0).firmwareVersion;
-                        fleetStore.select(activeMac);
-                    }
-                }
+                boolean selectedDisconnected = key.equalsIgnoreCase(
+                        activeMac == null ? "" : activeMac);
+                if (selectedDisconnected) activeFirmwareVersion = null;
+
                 runOnUiThread(() -> {
                     refreshFleetUi();
-                    if (activeMac == null) {
+                    if (selectedDisconnected) {
                         setOutletControlsEnabled(false);
+                        applyingDeviceState = true;
+                        try {
+                            for (MaterialButton outletSwitch : outletSwitches) {
+                                if (outletSwitch != null) outletSwitch.setChecked(false);
+                            }
+                        } finally {
+                            applyingDeviceState = false;
+                        }
                         clearTelemetryUi();
-                        clearDeviceNamingFields();
                         deviceState.setText(R.string.controller_disconnected);
-            deviceState.setTextColor(getColor(R.color.fg_red));
-                        discoveryDetail.setText(R.string.locked);
-                        refreshFleetOverviewAndList();
+                        deviceState.setTextColor(getColor(R.color.fg_silver));
+                        refreshDeviceCards();
                         loadAwayModeForActiveDevice();
                         refreshHistory();
                         refreshRuntimeSummary();
-                    } else if (selectedDisconnected) {
-                        selectFleetDevice(activeMac);
                     } else {
                         updateFleetStatus();
+                        refreshDeviceCards();
                     }
                 });
             }
