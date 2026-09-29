@@ -1,0 +1,24 @@
+name: Direct MTTL VPS Lab CI
+
+on:
+  push:
+    branches:
+      - private/direct-mttl-lab
+    paths:
+      - 'server/direct_mttl_lab.py'
+      - 'server/tests/test_direct_mttl_lab.py'
+      - '.github/workflows/direct-mttl-lab-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  parser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile lab listener
+        run: python3 -m py_compile server/direct_mttl_lab.py
+      - name: Run parser tests
+        env:
+          PYTHONPATH: server
+        run: python3 -m unittest -v server/tests/test_direct_mttl_lab.py
