@@ -23,13 +23,31 @@
         android:usesPermissionFlags="neverForLocation" />
 
     <application
-        android:allowBackup="true"
+        android:name=".FgLinkApplication"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="${appLabel}"
         android:supportsRtl="true"
         android:theme="@style/Theme.FGMachineRCK"
         android:usesCleartextTraffic="true">
+
+        <meta-data
+            android:name="com.fgmachines.fglink.PUBLISHER"
+            android:value="FG Machines" />
+        <meta-data
+            android:name="com.fgmachines.fglink.DEVELOPER"
+            android:value="Alaa Mohamed" />
+        <meta-data
+            android:name="com.fgmachines.fglink.PROVENANCE"
+            android:value="FGLINK-1615-FGM-20260929" />
+        <meta-data
+            android:name="com.fgmachines.fglink.DEVELOPER_FACEBOOK"
+            android:value="https://www.facebook.com/share/1EKVAyZZ2C/" />
+        <meta-data
+            android:name="com.fgmachines.fglink.OFFICIAL_FACEBOOK"
+            android:value="https://www.facebook.com/share/1T7r3WpH8Y/" />
 
         <service
             android:name=".MttlControllerService"
