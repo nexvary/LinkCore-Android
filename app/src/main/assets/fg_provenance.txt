@@ -1,0 +1,13 @@
+FG LINK OFFICIAL PROVENANCE
+Publisher: FG Machines
+Developer: Alaa Mohamed
+Product: FG Link
+Android package: com.fgmachines.rck
+Release line: 1.6.13
+Provenance marker: FGLINK-1613-FGM-20260929-AM
+
+This provenance record is embedded in the official FG Machines build.
+Official releases are additionally identified by the FG Machines signing certificate and published SHA-256 checksum.
+
+Developer profile URL: https://www.facebook.com/share/1EKVAyZZ2C/
+Official FG Machines Facebook page: https://www.facebook.com/share/1T7r3WpH8Y/
