@@ -30,3 +30,6 @@ server/**/__pycache__/
 authtoken.secret
 identity.secret
 zerotier-one/
+
+# Python integration bytecode
+**/__pycache__/

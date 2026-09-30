@@ -125,3 +125,9 @@ telemetry, view-only and outlet policies, account/session revocation, login rate
 limits, command ownership/audit, Android HTTPS/Bearer routing and flat-install
 preservation/rollback. On the live system, first grant the already-proven device
 to a test customer and verify their own login; only then add other hardware.
+
+## 1.6.8 — voice + Home Assistant
+
+Direct VPS cards now have a speech-recognition button (Arabic/English). It selects one explicit outlet ON/OFF command, displays a confirmation dialog, then uses the existing authenticated command path and real device confirmation. Unsupported/ambiguous/negated commands are not sent. Recognition depends on an installed Android speech provider and may need Internet. This version adds no background listening.
+
+The Home Assistant custom integration now supports customer Direct VPS credentials as well as the existing local phone token. Installation, Assist exposure, and optional Google Home linking instructions are in `home_assistant/README.md`. This is not a published Google cloud service; Google household setup remains required.

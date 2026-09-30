@@ -7,6 +7,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import RckApi, RckApiError
+from .direct_api import DirectAuthError
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +26,8 @@ class RckCoordinator(DataUpdateCoordinator[list[dict]]):
     async def _async_update_data(self) -> list[dict]:
         try:
             return await self.api.devices()
+        except DirectAuthError as err:
+            raise ConfigEntryAuthFailed("Direct VPS credentials rejected") from err
         except RckApiError as err:
             raise UpdateFailed(str(err)) from err
 

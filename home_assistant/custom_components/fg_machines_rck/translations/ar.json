@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "FG Link",
+        "menu_options": {
+          "direct": "Direct VPS · حساب العميل",
+          "local": "Android / LAN / ZeroTier"
+        }
+      },
+      "direct": {
+        "title": "Direct VPS",
+        "description": "استخدم حساب عميل مخصصًا من لوحة FG Link، وليس حساب المالك.",
+        "data": {
+          "host": "خادم HTTPS",
+          "username": "اسم المستخدم",
+          "password": "كلمة المرور"
+        }
+      },
+      "local": {
+        "title": "Android / LAN / ZeroTier",
+        "data": {
+          "host": "عنوان الهاتف Controller",
+          "token": "رمز الوصول"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "تعذر الاتصال بالخادم",
+      "invalid_auth": "بيانات الدخول غير صحيحة أو الحساب معطل",
+      "invalid_host": "اكتب عنوان HTTPS فقط"
+    },
+    "abort": {
+      "already_configured": "الحساب موجود بالفعل",
+      "reauth_successful": "تم تحديث بيانات الدخول",
+      "account_mismatch": "استخدم نفس حساب التكامل الأصلي"
+    }
+  }
+}

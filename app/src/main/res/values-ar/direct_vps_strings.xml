@@ -42,4 +42,10 @@
     <string name="direct_unavailable">المشترك غير متصل أو التحكم معطل أو هناك أمر قيد التنفيذ.</string>
     <string name="direct_extension_missing">واجهة Direct VPS غير متاحة. تحقق من تثبيت إضافة اللوحة.</string>
     <string name="direct_network_error">تعذّر جلب حالة المشترك. تحقق من الاتصال وعنوان خادم HTTPS.</string>
+    <string name="direct_voice">🎤 التحكم بالصوت</string>
+    <string name="direct_voice_help">قل: شغّل المخرج الأول / اطفي المخرج الثاني. التعرف على الكلام يستخدم خدمة الهاتف وقد يحتاج الإنترنت.</string>
+    <string name="direct_voice_invalid">الأمر غير واضح. قل تشغيل أو إطفاء مخرج واحد برقم من 1 إلى 4.</string>
+    <string name="direct_voice_confirm">تأكيد الأمر الصوتي</string>
+    <string name="direct_voice_send">إرسال الأمر</string>
+    <string name="direct_voice_missing">خدمة التعرف على الكلام غير متاحة. فعّل أو ثبّت خدمة صوت؛ التحكم اليدوي متاح.</string>
 </resources>

@@ -1,0 +1,15 @@
+# Fragment for Home Assistant configuration.yaml, NOT the FG Link VPS configuration.
+# Complete Google's account-linking setup using the official HA guide first.
+# Replace BOTH project ID and switch entity IDs. No credentials in this example.
+google_assistant:
+  project_id: REPLACE_WITH_YOUR_GOOGLE_PROJECT_ID
+  service_account: !include google-service-account.json
+  report_state: true
+  expose_by_default: false
+  entity_config:
+    switch.REPLACE_WITH_ACTUAL_FG_LINK_OUTLET_ENTITY:
+      expose: true
+      name: "إضاءة المكتب"
+      aliases:
+        - "Office lamp"
+      room: "المكتب"

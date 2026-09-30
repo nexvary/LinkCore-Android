@@ -2,8 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "title": "FG Machines RCK",
-        "description": "Connect to the authenticated local/VPN API on your controller phone.",
+        "title": "FG Link",
+        "menu_options": {
+          "direct": "Direct VPS · Customer account",
+          "local": "Android / LAN / ZeroTier"
+        }
+      },
+      "direct": {
+        "title": "Direct VPS",
+        "description": "Use a dedicated customer account created in the FG Link panel, not owner credentials.",
+        "data": {
+          "host": "HTTPS server",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "local": {
+        "title": "Android / LAN / ZeroTier",
         "data": {
           "host": "Controller URL",
           "token": "Access token"
@@ -11,10 +26,14 @@
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect or token is not authorized"
+      "cannot_connect": "Cannot connect to server",
+      "invalid_auth": "Invalid credentials or account disabled",
+      "invalid_host": "Enter an HTTPS origin"
     },
     "abort": {
-      "already_configured": "This controller is already configured"
+      "already_configured": "Account already configured",
+      "reauth_successful": "Credentials updated",
+      "account_mismatch": "Use the same account as the existing integration"
     }
   }
 }

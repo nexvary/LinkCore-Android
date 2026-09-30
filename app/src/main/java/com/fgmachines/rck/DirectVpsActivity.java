@@ -1,6 +1,11 @@
 package com.fgmachines.rck;
 
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
+import android.speech.RecognizerIntent;
+import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -38,6 +43,31 @@ public final class DirectVpsActivity extends AppCompatActivity {
     private List<DirectVpsApiClient.Device> devices = new ArrayList<>();
     private boolean resumed, fetching, pending, fresh;
     private int generation;
+    private String voiceMac;
+    private int voiceGeneration;
+    private final ActivityResultLauncher<Intent> voiceLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                String target = voiceMac;
+                voiceMac = null;
+                if (result.getResultCode() != RESULT_OK || result.getData() == null
+                        || target == null || voiceGeneration != generation || client == null) return;
+                ArrayList<String> phrases = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                DirectVoiceCommand command = phrases == null || phrases.isEmpty() ? null
+                        : DirectVoiceCommand.parse(phrases.get(0));
+                if (command == null) { message.setText(R.string.direct_voice_invalid); return; }
+                int session = generation;
+                new AlertDialog.Builder(this).setTitle(R.string.direct_voice_confirm)
+                        .setMessage(target + "\n" + getString(R.string.direct_outlet, command.outlet)
+                                + " · " + getString(command.on ? R.string.direct_on : R.string.direct_off))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.direct_voice_send, (dialog, which) -> {
+                            if (session != generation) return;
+                            for (DirectVpsApiClient.Device device : devices) {
+                                if (device.mac.equals(target)) { setOutlet(device, command.outlet, command.on); return; }
+                            }
+                            message.setText(R.string.direct_unavailable);
+                        }).show();
+            });
     private String pendingMac;
     private int pendingOutlet;
     private final Runnable poll = () -> refresh(false);
@@ -153,6 +183,7 @@ public final class DirectVpsActivity extends AppCompatActivity {
 
     private void signOut() {
         generation++;
+        voiceMac = null;
         main.removeCallbacks(poll);
         if (client != null) {
             DirectVpsApiClient previous = client;
@@ -206,15 +237,37 @@ public final class DirectVpsActivity extends AppCompatActivity {
         });
     }
 
+    private void listen(DirectVpsApiClient.Device device) {
+        if (client == null || pending || !fresh || !device.online() || voiceMac != null) return;
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, getResources().getConfiguration().getLocales().get(0).toLanguageTag());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.direct_voice_help));
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        voiceMac = device.mac;
+        voiceGeneration = generation;
+        try { voiceLauncher.launch(intent); }
+        catch (ActivityNotFoundException | SecurityException e) {
+            voiceMac = null;
+            message.setText(R.string.direct_voice_missing);
+        }
+    }
+
     private void toggle(DirectVpsApiClient.Device device, int outlet) {
-        if (client == null || pending || !fresh || !device.canControl(outlet)) return;
+        setOutlet(device, outlet, device.state(outlet).equals("off"));
+    }
+
+    private void setOutlet(DirectVpsApiClient.Device device, int outlet, boolean on) {
+        if (client == null || pending || !fresh || !device.canControl(outlet)) {
+            message.setText(R.string.direct_unavailable);
+            return;
+        }
         pending = true;
         pendingMac = device.mac;
         pendingOutlet = outlet;
         main.removeCallbacks(poll);
         message.setText(R.string.direct_waiting);
         render();
-        boolean on = device.state(outlet).equals("off");
         int session = generation;
         DirectVpsApiClient api = client;
         worker.execute(() -> {
@@ -268,6 +321,12 @@ public final class DirectVpsActivity extends AppCompatActivity {
                     + "\n" + value(data, "peer"), 14));
             card.addView(DirectVpsViews.text(this, getString(R.string.direct_times,
                     time(data.optDouble("connected_at", 0)), time(data.optDouble("last_seen", 0))), 13));
+            Button voice = DirectVpsViews.button(this, getString(R.string.direct_voice), v -> listen(device));
+            boolean controllable = false;
+            for (int channel = 1; channel <= 4; channel++) if (device.canControl(channel)) controllable = true;
+            voice.setEnabled(fresh && !pending && controllable);
+            card.addView(voice);
+            card.addView(DirectVpsViews.text(this, getString(R.string.direct_voice_help), 13));
             org.json.JSONArray allowed = data.optJSONArray("allowed_outlets");
             if (allowed != null && allowed.length() == 0) {
                 card.addView(DirectVpsViews.text(this, getString(R.string.direct_view_only), 15));

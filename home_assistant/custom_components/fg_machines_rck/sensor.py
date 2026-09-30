@@ -17,7 +17,7 @@ from .coordinator import RckCoordinator
 class SensorDescription:
     key: str
     name: str
-    unit: str
+    unit: str | None
     device_class: SensorDeviceClass | None
     state_class: SensorStateClass | None
 
@@ -43,6 +43,7 @@ OUTLET_SENSORS = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     coordinator: RckCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.identity_prefix = entry.entry_id + "_" if getattr(coordinator.api, "direct", False) else ""
     known: set[str] = set()
 
     @callback
@@ -52,14 +53,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             mac = str(device.get("mac", ""))
             if not mac:
                 continue
-            for description in SENSORS:
+            for description in (() if getattr(coordinator.api, "direct", False) else SENSORS):
                 unique = f"{mac}_{description.key}"
                 if unique in known:
                     continue
                 known.add(unique)
                 entities.append(RckSensor(coordinator, mac, description))
-            for outlet in range(1, 5):
-                for description in OUTLET_SENSORS:
+            outlets = device.get("visible_outlets", range(1, 5))
+            for outlet in outlets:
+                descriptions = OUTLET_SENSORS + ((SensorDescription("relay", "State", None, None, None),)
+                        if getattr(coordinator.api, "direct", False) else ())
+                for description in descriptions:
                     unique = f"{mac}_outlet_{outlet}_{description.key}"
                     if unique in known:
                         continue
@@ -82,7 +86,7 @@ class RckSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._mac = mac
         self._description = description
-        self._attr_unique_id = f"{mac}_{description.key}"
+        self._attr_unique_id = getattr(coordinator, "identity_prefix", "") + f"{mac}_{description.key}"
         self._attr_name = description.name
         self._attr_native_unit_of_measurement = description.unit
         self._attr_device_class = description.device_class
@@ -92,7 +96,7 @@ class RckSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
     def device_info(self) -> DeviceInfo:
         device = self.coordinator.device(self._mac) or {}
         return DeviceInfo(
-            identifiers={(DOMAIN, self._mac)},
+            identifiers={(DOMAIN, getattr(self.coordinator, "identity_prefix", "") + self._mac)},
             name=device.get("name") or f"MTTL-W01 {self._mac}",
             manufacturer="FG Machines / compatible MTTL",
             model="MTTL-W01",
@@ -103,7 +107,7 @@ class RckSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
     @property
     def available(self) -> bool:
         device = self.coordinator.device(self._mac)
-        return bool(device and device.get("connected"))
+        return bool(super().available and device and device.get("connected"))
 
     @property
     def native_value(self):
@@ -126,7 +130,7 @@ class RckOutletSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
         self._mac = mac
         self._outlet = outlet
         self._description = description
-        self._attr_unique_id = f"{mac}_outlet_{outlet}_{description.key}"
+        self._attr_unique_id = getattr(coordinator, "identity_prefix", "") + f"{mac}_outlet_{outlet}_{description.key}"
         self._attr_name = f"Outlet {outlet} {description.name}"
         self._attr_native_unit_of_measurement = description.unit
         self._attr_device_class = description.device_class
@@ -136,7 +140,7 @@ class RckOutletSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
     def device_info(self) -> DeviceInfo:
         device = self.coordinator.device(self._mac) or {}
         return DeviceInfo(
-            identifiers={(DOMAIN, self._mac)},
+            identifiers={(DOMAIN, getattr(self.coordinator, "identity_prefix", "") + self._mac)},
             name=device.get("name") or f"MTTL-W01 {self._mac}",
             manufacturer="FG Machines / compatible MTTL",
             model="MTTL-W01",
@@ -147,7 +151,8 @@ class RckOutletSensor(CoordinatorEntity[RckCoordinator], SensorEntity):
     @property
     def available(self) -> bool:
         device = self.coordinator.device(self._mac)
-        return bool(device and device.get("connected"))
+        return bool(super().available and device and device.get("connected")
+                    and self._outlet in device.get("visible_outlets", range(1, 5)))
 
     @property
     def native_value(self):

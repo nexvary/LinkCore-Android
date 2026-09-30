@@ -43,4 +43,10 @@
     <string name="direct_unavailable">Device offline, control disabled, or another command is pending.</string>
     <string name="direct_extension_missing">Direct VPS API unavailable. Check that the panel extension is installed.</string>
     <string name="direct_network_error">Could not retrieve the device state. Check your connection and HTTPS server.</string>
+    <string name="direct_voice">🎤 Voice control</string>
+    <string name="direct_voice_help">Say: Turn on outlet one / Turn off outlet two. Speech recognition uses your phone’s installed provider and may need Internet.</string>
+    <string name="direct_voice_invalid">Command not understood. Say one explicit ON/OFF action and one outlet number (1–4).</string>
+    <string name="direct_voice_confirm">Confirm voice command</string>
+    <string name="direct_voice_send">Send command</string>
+    <string name="direct_voice_missing">No speech recognition service is available. Install or enable a speech provider; manual control remains available.</string>
 </resources>
