@@ -300,24 +300,38 @@ class DirectMttlLab:
 
 def parse_getinfo(frame: str):
     prefix = "up:getinfo:"
+    if frame is None:
+        return None
+    frame = frame.strip()
     if not frame.startswith(prefix):
         return None
-    parts = frame[len(prefix):].split(":")
-    if len(parts) != 8:
+
+    # Firmware revisions observed in the field can vary slightly in payload
+    # width. Split by the four channel markers instead of requiring an exact
+    # global colon count, then consume the first 12 verified fields per channel.
+    payload = frame[len(prefix):]
+    segments = re.split(r":(?=[1-4]:)", payload)
+    if len(segments) != 4:
         return None
 
     outlets = []
     seen = set()
-    for offset in range(0, 8, 2):
+    for segment in segments:
+        channel_text, separator, data = segment.partition(":")
+        if not separator:
+            return None
         try:
-            channel = int(parts[offset])
+            channel = int(channel_text)
         except ValueError:
             return None
         if channel not in (1, 2, 3, 4) or channel in seen:
             return None
-        fields = parts[offset + 1].split(";")
-        if len(fields) != 12:
+
+        fields = data.split(";")
+        if len(fields) < 12:
             return None
+        fields = fields[:12]
+
         if fields[1].lower() not in {"on", "off"}:
             return None
         try:
@@ -326,6 +340,7 @@ def parse_getinfo(frame: str):
             temperature_c = int(fields[11])
         except ValueError:
             return None
+
         outlets.append(
             {
                 "channel": channel,
@@ -337,6 +352,9 @@ def parse_getinfo(frame: str):
             }
         )
         seen.add(channel)
+
+    if seen != {1, 2, 3, 4}:
+        return None
     return sorted(outlets, key=lambda item: item["channel"])
 
 
