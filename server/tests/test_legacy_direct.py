@@ -72,6 +72,9 @@ def test_panel_injection_and_existing_routes(deployed):
     assert response.status_code == 200
     assert 'Original accounts panel' in response.text
     assert response.text.count('id="fg-direct-vps"') == 1
+    assert 'fg-panel-header' in response.text
+    assert 'fg-panel-audit' in response.text
+    assert 'fgdu-permission-title' in response.text
     assert response.headers['content-length'] == str(len(response.content))
     assert client.get('/healthz').json()['service'] == 'FG Link Server'
     assert client.post('/api/v1/client/commands/poll').json()['legacy']
@@ -267,3 +270,33 @@ def test_login_attempts_are_limited_and_unknown_user_is_generic(deployed):
         response = client.post('/api/v1/direct/auth/login', json={'username': 'unknown', 'password': 'wrong'})
         assert response.status_code == 401 and response.json()['detail'] == 'Invalid username or password'
     assert client.post('/api/v1/direct/auth/login', json={'username': 'unknown', 'password': 'wrong'}).status_code == 429
+
+
+def test_customer_batch_assignment_is_validated_and_scoped(deployed, monkeypatch):
+    client, factory, owner, calls = deployed
+    user = client.post('/panel/api/direct/users', headers=owner, json={'username': 'fleetowner'}).json()
+    path = '/panel/api/direct/users/' + user['id'] + '/devices'
+    allowed = []
+    monkeypatch.setattr(legacy_direct.adapter, 'allow_many', lambda macs: allowed.append(macs))
+    body = {'macs': [MAC, 'aabbccddeeff', MAC], 'view_mask': 15, 'control_mask': 3}
+    assert client.put(path, json=body).status_code == 403
+    assert client.put(path, headers=owner, json={**body, 'macs': [MAC, 'bad']}).status_code == 422
+    assert client.put(path, headers=owner, json={**body, 'view_mask': 1}).status_code == 422
+    assert not allowed
+    response = client.put(path, headers=owner, json=body)
+    assert response.status_code == 200 and response.json()['count'] == 2
+    assert allowed == [[MAC, 'AABBCCDDEEFF']]
+    assert client.put(path, headers=owner, json=body).status_code == 200
+    grants = client.get('/panel/api/direct/users', headers=owner).json()['users'][0]['grants']
+    assert len(grants) == 2 and all(g['control_mask'] == 3 for g in grants)
+    login = client.post('/api/v1/direct/auth/login', json={'username': 'fleetowner', 'password': user['password']}).json()
+    token = {'Authorization': 'Bearer ' + login['access_token']}
+    visible = client.get('/api/v1/direct/devices', headers=token).json()['devices']
+    assert {d['mac'] for d in visible} == {MAC, 'AABBCCDDEEFF'}
+    def unavailable(macs):
+        raise OSError('daemon unavailable')
+    monkeypatch.setattr(legacy_direct.adapter, 'allow_many', unavailable)
+    assert client.put(path, headers=owner, json={**body, 'macs': ['112233445566']}).status_code == 503
+    with factory() as db:
+        assert db.get(legacy_direct.DirectRegistration, '112233445566') is None
+    assert len(client.get('/panel/api/direct/users', headers=owner).json()['users'][0]['grants']) == 2

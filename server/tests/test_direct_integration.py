@@ -129,7 +129,9 @@ class DirectSessionTests(unittest.IsolatedAsyncioTestCase):
             path = str(Path(directory) / 'allowed.json')
             self.lab.allowlist_file = path
             self.assertFalse((await self.lab.admin_command('allow invalid'))['ok'])
-            self.assertTrue((await self.lab.admin_command('allow ' + other))['ok'])
+            self.assertFalse((await self.lab.admin_command('allowmany ' + other + ',invalid'))['ok'])
+            self.assertEqual(self.lab.allowed_macs, {MAC})
+            self.assertTrue((await self.lab.admin_command('allowmany ' + MAC + ',' + other))['ok'])
             await self.connect()
             reader, writer = await asyncio.open_connection('127.0.0.1', self.port)
             self.writers.append(writer)

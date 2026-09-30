@@ -19,7 +19,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.routing import request_response
 
 from .direct_mttl import adapter, direct_macs
-from .legacy_direct_ui import WIDGET
+from .legacy_direct_ui import WIDGET, PANEL_LAYOUT
 from .legacy_direct_users_ui import USERS_WIDGET
 
 
@@ -71,7 +71,7 @@ def inject_widget(response):
     body = response.body.decode(response.charset)
     if 'id="fg-direct-vps"' in body:
         return response
-    widget = WIDGET + USERS_WIDGET
+    widget = WIDGET + USERS_WIDGET + PANEL_LAYOUT
     body = body.replace('</body>', widget + '</body>') if '</body>' in body else body + widget
     response.body = body.encode(response.charset)
     response.headers['content-length'] = str(len(response.body))

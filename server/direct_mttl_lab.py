@@ -338,13 +338,14 @@ class DirectMttlLab:
                 ],
             }
 
-        if parts[0] == 'allow' and len(parts) == 2:
+        if parts[0] in ('allow', 'allowmany') and len(parts) == 2:
             mac = parts[1].upper()
-            if not re.fullmatch(r'[0-9A-F]{12}', mac):
+            additions = set(mac.split(',')) if parts[0] == 'allowmany' else {mac}
+            if any(not re.fullmatch(r'[0-9A-F]{12}', value) for value in additions):
                 return {'ok': False, 'error': 'invalid MAC'}
             if not self.allowlist_file:
                 return {'ok': False, 'error': 'persistent allow-list is not configured'}
-            proposed = self.allowed_macs | {mac}
+            proposed = self.allowed_macs | additions
             if len(proposed) > 256:
                 return {'ok': False, 'error': 'allow-list capacity exceeded'}
             path = Path(self.allowlist_file)
@@ -353,7 +354,7 @@ class DirectMttlLab:
             temporary.chmod(0o600)
             temporary.replace(path)
             self.allowed_macs = proposed
-            return {'ok': True, 'mac': mac}
+            return {'ok': True, 'mac': mac} if parts[0] == 'allow' else {'ok': True, 'macs': sorted(additions)}
 
         if parts[0] == "refresh" and len(parts) == 2:
             mac = normalize_mac(parts[1])

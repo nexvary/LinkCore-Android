@@ -65,6 +65,10 @@ class GrantInput(BaseModel):
     control_mask: int = Field(default=0, ge=0, le=15)
 
 
+class BulkGrantInput(GrantInput):
+    macs: list[str] = Field(min_length=1, max_length=256)
+
+
 class PolicyInput(BaseModel):
     control_mask: int = Field(ge=0, le=15)
 
@@ -336,6 +340,39 @@ def install_users(app, factory, guard, log, registered, execute):
             management_log(db, 'device_policy_changed', {'mac': row.mac, 'control_mask': body.control_mask})
             db.commit()
             return {'ok': True}
+
+    @app.put('/panel/api/direct/users/{user_id}/devices', dependencies=[Depends(guard)])
+    def grant_devices(user_id: str, body: BulkGrantInput):
+        if body.control_mask & ~body.view_mask:
+            raise HTTPException(422, 'Control outlets must also be visible')
+        macs = sorted({mac.strip().upper() for mac in body.macs})
+        if any(not re.fullmatch(r'[0-9A-F]{12}', mac) for mac in macs):
+            raise HTTPException(422, 'Expected 12 hexadecimal MAC characters for every device')
+        with factory() as db:
+            user_or_404(db, user_id)
+            try:
+                adapter.allow_many(macs)
+            except (OSError, ValueError):
+                raise HTTPException(503, 'Persistent Direct allow-list unavailable; no account grants changed')
+            for mac in macs:
+                if db.get(DirectRegistration, mac) is None:
+                    db.add(DirectRegistration(mac=mac, outlet_mask=15))
+                    management_log(db, 'device_registered', {'mac': mac})
+            db.flush()
+            for mac in macs:
+                grant = db.get(DirectGrant, (user_id, mac))
+                if grant is None:
+                    grant = DirectGrant(user_id=user_id, mac=mac)
+                    db.add(grant)
+                grant.view_mask, grant.control_mask = body.view_mask, body.control_mask
+                management_log(db, 'grant_changed', {'user': user_id, 'mac': mac,
+                               'view_mask': body.view_mask, 'control_mask': body.control_mask})
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                raise HTTPException(409, 'Concurrent device update; retry the group assignment')
+            return {'ok': True, 'count': len(macs), 'macs': macs}
 
     @app.put('/panel/api/direct/users/{user_id}/devices/{mac}', dependencies=[Depends(guard)])
     def grant_device(user_id: str, mac: str, body: GrantInput):

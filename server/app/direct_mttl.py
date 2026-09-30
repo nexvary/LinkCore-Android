@@ -58,5 +58,13 @@ class DirectMttlAdapter:
             raise ValueError('persistent allow-list unavailable')
         return result
 
+    def allow_many(self, macs):
+        if not macs or len(macs) > 256 or any(not re.fullmatch(r'[0-9A-F]{12}', mac) for mac in macs):
+            raise ValueError('invalid MAC group')
+        result = self.request('allowmany ' + ','.join(sorted(set(macs))))
+        if not result.get('ok'):
+            raise ValueError('persistent allow-list unavailable')
+        return result
+
 
 adapter = DirectMttlAdapter()
