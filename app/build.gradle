@@ -40,6 +40,13 @@ android {
             versionNameSuffix '-debug'
             manifestPlaceholders = [appLabel: 'FG Link Debug']
         }
+        directVpsLab {
+            initWith debug
+            applicationIdSuffix '.directvpslab'
+            versionNameSuffix '-direct-vps'
+            matchingFallbacks = ['debug']
+            manifestPlaceholders = [appLabel: 'FG Link Direct VPS']
+        }
         sidecar {
             initWith debug
             applicationIdSuffix '.sidecar163'
@@ -82,4 +89,5 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:barcode-scanning:17.3.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }

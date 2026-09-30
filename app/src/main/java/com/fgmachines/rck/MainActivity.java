@@ -621,6 +621,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureCompactSettings() {
+        findViewById(R.id.connectionModeButton).setOnClickListener(v ->
+                startActivity(new Intent(this, ConnectionModeActivity.class)));
         MaterialButton toggle = findViewById(R.id.settingsAdvancedToggle);
         View advanced = findViewById(R.id.advancedSettingsContainer);
         if (toggle == null || advanced == null) return;

@@ -2434,6 +2434,13 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/connectionModeButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/direct_switch_mode"
+                    android:textAllCaps="false" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/settingsAdvancedToggle"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"

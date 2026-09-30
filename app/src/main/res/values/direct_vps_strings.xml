@@ -1,0 +1,41 @@
+<!-- The experimental owner screen supports Arabic and English; other locales use English. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="direct_title">Direct VPS · Experimental</string>
+    <string name="direct_choose_mode">FG Link · Connection</string>
+    <string name="direct_choose_help">Choose how to control your devices. LAN and ZeroTier remain available independently of the VPS.</string>
+    <string name="direct_local">Android / LAN / ZeroTier</string>
+    <string name="direct_switch_mode">Choose connection mode</string>
+    <string name="direct_owner_help">Owner access using your existing panel login. Devices connect directly to the VPS; this phone is an HTTPS client. Your password stays in memory until logout or closing this screen.</string>
+    <string name="direct_server">HTTPS server</string>
+    <string name="direct_username">Panel username</string>
+    <string name="direct_password">Panel password</string>
+    <string name="direct_login">Connect</string>
+    <string name="direct_logout">Log out</string>
+    <string name="direct_refresh">Refresh</string>
+    <string name="direct_login_input_error">Enter an HTTPS server address and your panel username and password.</string>
+    <string name="direct_loading">Connecting…</string>
+    <string name="direct_logged_out">Logged out. Enter your panel login to connect.</string>
+    <string name="direct_connected">Connected to the Direct VPS API.</string>
+    <string name="direct_waiting">Command pending · waiting for device confirmation…</string>
+    <string name="direct_confirmed">Confirmed by the device.</string>
+    <string name="direct_failed">Command failed. Check the current device state.</string>
+    <string name="direct_timeout">Confirmation timed out. Check the current device state before retrying.</string>
+    <string name="direct_unknown_result">Connection interrupted. Command outcome is unknown; refresh before retrying.</string>
+    <string name="direct_no_devices">No registered Direct VPS devices.</string>
+    <string name="direct_online">Online · direct TCP session</string>
+    <string name="direct_offline">Offline / connection unavailable</string>
+    <string name="direct_times">Connected: %1$s\nLast seen: %2$s</string>
+    <string name="direct_pending">Pending</string>
+    <string name="direct_on">ON</string>
+    <string name="direct_off">OFF</string>
+    <string name="direct_unknown">Unknown</string>
+    <string name="direct_outlet">Outlet %1$d</string>
+    <string name="direct_action_off">Tap to turn off</string>
+    <string name="direct_action_on">Tap to turn on</string>
+    <string name="direct_protection">Overload / heat: %1$s / %2$s · Event: %3$s</string>
+    <string name="direct_auth_error">Panel login rejected. Check your username and password.</string>
+    <string name="direct_denied">Access denied by the panel or outlet policy.</string>
+    <string name="direct_unavailable">Device offline, control disabled, or another command is pending.</string>
+    <string name="direct_extension_missing">Direct VPS API unavailable. Check that the panel extension is installed.</string>
+    <string name="direct_network_error">Could not retrieve the device state. Check your connection and HTTPS server.</string>
+</resources>
