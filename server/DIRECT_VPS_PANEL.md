@@ -15,10 +15,14 @@ systemd runtime directory. Non-container API deployments can use loopback 18087
 by leaving `FGRCK_DIRECT_MTTL_SOCKET` empty. No admin listener is exposed publicly.
 
 Run `sudo bash server/update-direct-panel.sh` from the checked-out branch on the VPS.
-It expects the existing cloud checkout at `/opt/fg-link-cloud` (override with
-`FGRCK_INSTALL_DIR`), preserves and backs up credentials, enables control only for
+It supports the existing flat server installation at `/opt/fg-link-server`
+and repository layouts with `server/.env` (override with `FGRCK_INSTALL_DIR`), preserves and backs up credentials, enables control only for
 the configured test MAC, updates the lab service and rebuilds the existing API.
-It stops if tracked local changes exist. Database volumes and Caddy remain in place.
+For flat installs it stages source separately, backs up the previous application,
+overlays application/dependency/image files, and adds a managed Compose override.
+It preserves the original Compose/Caddy configuration, project identity and database
+volumes. An existing custom Compose override stops the update before changes.
+Repository installs stop if tracked local changes exist.
 The existing registered owner device must have MAC `2CE032C7A520`; registration is
 still required. This deployment script has not been tested on the physical VPS.
 
