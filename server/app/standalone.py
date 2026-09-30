@@ -85,5 +85,6 @@ async def independent_panel(request: Request, call_next):
     if request.url.path == '/panel' and response.status_code == 200:
         from fastapi.responses import HTMLResponse
         body = b''.join([chunk async for chunk in response.body_iterator]).decode('utf-8')
-        return HTMLResponse(body.replace('</body>', GATE + '</body>'), headers={'Cache-Control': 'no-store'})
+        injected = legacy_direct.inject_widget(HTMLResponse(body)).body.decode('utf-8')
+        return HTMLResponse(injected.replace('</body>', GATE + '</body>'), headers={'Cache-Control': 'no-store'})
     return response

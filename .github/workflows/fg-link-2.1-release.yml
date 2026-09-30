@@ -138,4 +138,11 @@ jobs:
           PY
       - name: Cleanup
         if: always()
+        env:
+          FGRCK_DOMAIN: localhost
+          FGRCK_ACME_EMAIL: owner@example.com
+          FGRCK_ADMIN_EMAIL: owner@example.com
+          POSTGRES_PASSWORD: fixture-container-db-only
+          FGRCK_JWT_SECRET: fixture-container-jwt-only-xxxxxxxxxxxxxxxxxxxxxxxx
+          FGRCK_TOKEN_PEPPER: fixture-container-pepper-only-xxxxxxxxxxxxxxxxxxxxx
         run: cd server && docker compose -f docker-compose.yml -f docker-compose.panel.yml down -v
