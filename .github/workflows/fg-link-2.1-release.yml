@@ -48,7 +48,7 @@ jobs:
           PYTHONPATH: server
           FGRCK_ENV: test
           FGRCK_DIRECT_EMAIL_WORKER_ENABLED: 'false'
-        run: pytest -q server/tests/test_legacy_direct.py server/tests/test_direct_email.py server/tests/test_direct_integration.py server/tests/test_direct_mttl_lab.py
+        run: pytest -q server/tests/test_legacy_direct.py server/tests/test_direct_email.py server/tests/test_direct_integration.py server/tests/test_direct_mttl_lab.py server/tests/test_standalone_panel.py
   ui:
     needs: android
     runs-on: ubuntu-latest
@@ -76,3 +76,66 @@ jobs:
         with:
           name: FG-Link-2.1.2-UI
           path: direct-ui-validation/*
+  panel-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r server/requirements.txt
+      - name: Start independent panel
+        env:
+          PYTHONPATH: server
+          FGRCK_ENV: test
+          FGRCK_ADMIN_EMAIL: owner@example.com
+          FGRCK_DATABASE_URL: sqlite:////tmp/panel-preview.sqlite
+          FGRCK_DIRECT_EMAIL_WORKER_ENABLED: 'false'
+        run: |
+          uvicorn app.standalone:app --host 127.0.0.1 --port 8080 > /tmp/panel-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          printf '%s' 'PreviewPassword123' | python -m app.bootstrap_admin
+      - run: npm install playwright && npx playwright install --with-deps chromium
+      - run: node scripts/verify_panel_bundle_ui.cjs
+      - run: python scripts/package_fg_panel.py --commit "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FG-Link-Panel-Standalone
+          path: |
+            dist/FG-Link-Panel-Standalone.zip
+            panel-preview/*.png
+  panel-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify PostgreSQL deployment and administrator bootstrap
+        env:
+          FGRCK_DOMAIN: localhost
+          FGRCK_ACME_EMAIL: owner@example.com
+          FGRCK_ADMIN_EMAIL: owner@example.com
+          POSTGRES_PASSWORD: fixture-container-db-only
+          FGRCK_JWT_SECRET: fixture-container-jwt-only-xxxxxxxxxxxxxxxxxxxxxxxx
+          FGRCK_TOKEN_PEPPER: fixture-container-pepper-only-xxxxxxxxxxxxxxxxxxxxx
+        run: |
+          cd server
+          docker compose -f docker-compose.yml -f docker-compose.panel.yml up -d --build db api
+          for attempt in $(seq 1 45); do
+            if docker compose -f docker-compose.yml -f docker-compose.panel.yml exec -T api python -c 'import urllib.request;urllib.request.urlopen("http://127.0.0.1:8080/healthz")'; then break; fi
+            sleep 2
+          done
+          printf '%s' 'ContainerPassword123' | docker compose -f docker-compose.yml -f docker-compose.panel.yml exec -T api python -m app.bootstrap_admin
+          docker compose -f docker-compose.yml -f docker-compose.panel.yml exec -T api python - <<'PY'
+          import json,urllib.request
+          request=urllib.request.Request('http://127.0.0.1:8080/api/v1/auth/login',data=json.dumps({'email':'owner@example.com','password':'ContainerPassword123'}).encode(),headers={'Content-Type':'application/json'})
+          token=json.load(urllib.request.urlopen(request))['access_token']
+          for path in ('/panel/api/session','/panel/api/direct/users','/panel/api/direct/devices'):
+              response=urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8080'+path,headers={'Authorization':'Bearer '+token}))
+              assert response.status==200
+          assert 'fg-direct-users' in urllib.request.urlopen('http://127.0.0.1:8080/panel').read().decode()
+          print('Fresh PostgreSQL API, owner bootstrap and panel verified')
+          PY
+      - name: Cleanup
+        if: always()
+        run: cd server && docker compose -f docker-compose.yml -f docker-compose.panel.yml down -v

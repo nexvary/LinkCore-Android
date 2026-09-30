@@ -193,3 +193,25 @@ class UncappedRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(lab.allowed_macs), 512)
             with self.assertRaises(ValueError):
                 DirectMttlLab('127.0.0.1', 0, ','.join(macs) + ',bad', 'lgutap', 5, '127.0.0.1', 0, True)
+
+
+class ManagedRegistryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_fresh_managed_controller_rejects_unregistered_devices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory)/'allowed.json')
+            with patch.dict('os.environ', {'NEXVARY_MTTL_MANAGED_REGISTRY':'1', 'NEXVARY_MTTL_ALLOWED_MACS_FILE':path}):
+                lab = DirectMttlLab('127.0.0.1',0,'','lgutap',5,'127.0.0.1',0,True)
+                await lab.start()
+                try:
+                    port = lab._server.sockets[0].getsockname()[1]
+                    reader,writer = await asyncio.open_connection('127.0.0.1',port)
+                    writer.write(BOOT.encode());await writer.drain()
+                    self.assertEqual(await asyncio.wait_for(reader.readline(),1),b'')
+                    writer.close();await writer.wait_closed()
+                    self.assertFalse(lab.devices)
+                    self.assertTrue((await lab.admin_command('allow '+MAC))['ok'])
+                    reader,writer = await asyncio.open_connection('127.0.0.1',port)
+                    writer.write(BOOT.encode());await writer.drain()
+                    self.assertEqual(await asyncio.wait_for(reader.readline(),1),b'up:getinfo:all\r\n')
+                    writer.close();await writer.wait_closed()
+                finally: await lab.stop()

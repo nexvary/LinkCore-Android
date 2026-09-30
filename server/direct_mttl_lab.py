@@ -89,6 +89,9 @@ class DirectMttlLab:
         if any(not re.fullmatch(r'[0-9A-F]{12}', v) for v in self.allowed_macs):
             raise ValueError('invalid MAC allow-list')
         self.allowlist_file = os.getenv('NEXVARY_MTTL_ALLOWED_MACS_FILE', '')
+        self.managed_registry = os.getenv('NEXVARY_MTTL_MANAGED_REGISTRY', '0') == '1'
+        if self.managed_registry and not self.allowlist_file:
+            raise ValueError('managed registry requires persistent allow-list')
         if self.allowlist_file and Path(self.allowlist_file).exists():
             saved = json.loads(Path(self.allowlist_file).read_text())
             if not isinstance(saved, list) or any(
@@ -101,7 +104,7 @@ class DirectMttlLab:
             raise ValueError("admin interface must remain loopback-only")
         self.admin_host = admin_host
         self.admin_port = admin_port
-        if allow_control and not self.allowed_macs:
+        if allow_control and not self.allowed_macs and not self.managed_registry:
             raise ValueError("control requires an explicit MAC allow-list")
         self.allow_control = allow_control
         self.command_timeout = 8.0
@@ -205,7 +208,7 @@ class DirectMttlLab:
                         raise ValueError("boot MAC/clientId mismatch")
                     if self.expected_model and model.lower() != self.expected_model:
                         raise ValueError(f"unexpected model {model!r}")
-                    if self.allowed_macs and mac not in self.allowed_macs:
+                    if (self.managed_registry or self.allowed_macs) and mac not in self.allowed_macs:
                         logging.warning("rejected_mac peer=%s mac=%s", peer, mac)
                         break
 
