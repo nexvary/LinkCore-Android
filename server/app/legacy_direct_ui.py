@@ -13,7 +13,13 @@ WIDGET = r'''
 #fg-direct-vps .fgdv-pending{border-color:#f0b35e;color:#f0b35e}
 #fg-direct-vps .fgdv-offline{border-color:#677481;color:#abb5bf}
 #fg-direct-vps button{font:inherit;padding:8px 16px;margin:8px 4px;border-radius:7px;border:1px solid #8296a6;background:#223848;color:#fff;cursor:pointer}
-#fg-direct-vps button:disabled{opacity:.4;cursor:default}
+#fg-direct-vps button:disabled{opacity:.55;cursor:default}
+#fg-direct-vps button.fgdv-toggle{min-width:140px;min-height:50px;font-size:18px;font-weight:700;border-width:2px;transition:background .15s,border-color .15s}
+#fg-direct-vps button.fgdv-toggle-on{background:#147a47;border-color:#52e7a0;box-shadow:0 0 12px #32c57d30}
+#fg-direct-vps button.fgdv-toggle-off{background:#a5123d;border-color:#f05a80;box-shadow:0 0 12px #d81e5730}
+#fg-direct-vps button.fgdv-toggle-pending{background:#835500;border-color:#f0b35e;opacity:1}
+#fg-direct-vps button.fgdv-toggle-offline{background:#39434d;border-color:#7b8997}
+#fg-direct-vps button.fgdv-toggle:focus-visible{outline:3px solid #dbeeff;outline-offset:3px}
 #fg-direct-vps small{display:block;margin:5px 0;color:#c4cdd4;overflow-wrap:anywhere}
 </style>
 <script>
@@ -33,9 +39,13 @@ function render(){
    const o=outlets.find(x=>x.channel===n)||{};
    const busy=pending.has(d.mac+':'+n)||(d.pending_outlets||[]).includes(n);
    const label=!d.connected?t('غير متصل','Offline'):busy?t('قيد التنفيذ','Pending'):(o.relay||t('غير معروف','Unknown')).toUpperCase();
-   const css=!d.connected?'offline':busy?'pending':o.relay==='on'?'on':'off';
-   const disabled=!d.connected||!d.control_enabled||busy||!allowed.has(n);
-   return '<div class="fgdv-outlet fgdv-'+css+'"><strong>'+t('مخرج ','Outlet ')+n+' · '+esc(label)+'</strong><small>'+esc(o.power_w)+' W · '+esc(o.energy_wh)+' Wh · '+esc(o.temperature_c)+' °C</small><small>'+t('حماية حمل / حرارة: ','Overload / overheat: ')+esc(o.overload)+' / '+esc(o.overheat)+' · '+t('حدث: ','Event: ')+esc(o.event_code)+'</small>'+['on','off'].map(s=>'<button type="button" data-mac="'+esc(d.mac)+'" data-outlet="'+n+'" data-state="'+s+'" '+(disabled?'disabled':'')+'>'+s.toUpperCase()+'</button>').join('')+'</div>';
+   const known=o.relay==='on'||o.relay==='off';
+   const css=!d.connected?'offline':busy?'pending':!known?'offline':o.relay;
+   const disabled=!d.connected||!d.control_enabled||busy||!allowed.has(n)||!known;
+   const next=o.relay==='on'?'off':'on';
+   const action=t('مخرج '+n+'، اضغط '+(next==='on'?'للتشغيل':'للإطفاء'),'Outlet '+n+', turn '+next);
+   const toggle='<button type="button" class="fgdv-toggle fgdv-toggle-'+css+'" data-mac="'+esc(d.mac)+'" data-outlet="'+n+'" data-state="'+next+'" aria-label="'+esc(action)+'" '+(known?'aria-pressed="'+(o.relay==='on')+'" ':'')+(disabled?'disabled':'')+'><span aria-hidden="true">⏻</span> '+esc(label)+'</button>';
+   return '<div class="fgdv-outlet fgdv-'+css+'"><strong>'+t('مخرج ','Outlet ')+n+' · '+esc(label)+'</strong><small>'+esc(o.power_w)+' W · '+esc(o.energy_wh)+' Wh · '+esc(o.temperature_c)+' °C</small><small>'+t('حماية حمل / حرارة: ','Overload / overheat: ')+esc(o.overload)+' / '+esc(o.overheat)+' · '+t('حدث: ','Event: ')+esc(o.event_code)+'</small>'+toggle+'</div>';
   }).join('');
   return '<div class="fgdv-card"><strong>DIRECT VPS · TCP 10086 · '+esc(d.mac)+' · '+(d.connected?t('متصل','Online'):t('غير متصل','Offline'))+'</strong><small>'+esc(d.model)+' · '+esc(d.firmware)+' · '+esc(d.peer)+'</small><small>'+t('وقت الاتصال: ','Connected: ')+esc(d.connected_at?new Date(d.connected_at*1000).toLocaleString():'—')+' · '+t('آخر ظهور: ','Last seen: ')+esc(d.last_seen?new Date(d.last_seen*1000).toLocaleString():'—')+'</small><div class="fgdv-outlets">'+cards+'</div></div>';
  }).join(''):esc(t('لا توجد أجهزة Direct VPS مسجلة.','No registered Direct VPS devices.'));
