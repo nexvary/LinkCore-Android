@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="setup_strip">إعداد مشترك</string>
+    <string name="setup_back">رجوع</string>
+    <string name="setup_instructions">للمشترك الجديد فقط: اختر المحلي أو Direct VPS، وأدخل شبكة إعداد المشترك وبيانات Wi-Fi الراوتر. اتصل مؤقتًا بشبكة TONLY_TAP/ONLY_TAP لكتابة الإعدادات، ثم ارجع لشبكة الإنترنت. المشترك الذي يعمل بالفعل لا يحتاج إعادة إعداد. تهيئة Wi-Fi لا تمنح ملكية أو صلاحيات تحكم.</string>
+    <string name="setup_ap_name">شبكة إعداد المشترك (TONLY_TAP_…)</string>
+    <string name="setup_home_name">اسم شبكة Wi-Fi الراوتر</string>
+    <string name="setup_home_password">كلمة مرور Wi-Fi الراوتر</string>
+    <string name="setup_local_controller">عنوان Controller المحلي الحالي</string>
+    <string name="setup_resolve">تجهيز عنوان السيرفر تلقائيًا</string>
+    <string name="setup_consent">أقوم بإعداد مشترك جديد وأفهم أن ذلك يغيّر إعدادات شبكته.</string>
+    <string name="setup_wifi_settings">فتح إعدادات Wi-Fi / العودة للإنترنت</string>
+    <string name="setup_automatic">الاتصال بشبكة الإعداد وتهيئة المشترك</string>
+    <string name="setup_manual">التهيئة بعد الاتصال يدويًا بشبكة الإعداد</string>
+    <string name="setup_check_account">عدت للإنترنت — تحقق من أجهزتي</string>
+    <string name="setup_resolve_first">جهّز عنوان السيرفر أثناء الاتصال بالإنترنت قبل الانتقال لشبكة إعداد المشترك.</string>
+    <string name="setup_local_preserved">المسار المحلي: احتفظ بعنوان Controller الحالي. المعالج لا يغيّر إعدادات Controller المحفوظة.</string>
+    <string name="setup_resolving">جارٍ تجهيز عنوان السيرفر…</string>
+    <string name="setup_resolve_failed">تعذّر تجهيز عنوان السيرفر. اتصل بالإنترنت وأعد المحاولة. لم تُكتب إعدادات على المشترك.</string>
+    <string name="setup_server_ready">عنوان السيرفر جاهز. يمكنك الآن الاتصال بشبكة إعداد المشترك.</string>
+    <string name="setup_invalid">تحقق من شبكة الإعداد وشبكة الراوتر وعنوان Controller وتأكيد إعداد مشترك جديد. جهّز عنوان السيرفر قبل قطع الإنترنت.</string>
+    <string name="setup_network_written">أكد المشترك استلام إعدادات الشبكة. ارجع للإنترنت ثم تحقق من حسابك الشخصي. هذا لا يؤكد الاتصال بالخادم ولا يمنح صلاحيات تحكم.</string>
+    <string name="setup_local_written">أكد المشترك استلام إعدادات الشبكة. ارجع لشبكتك المحلية وتحقق من الاتصال عبر LAN/ZeroTier.</string>
+    <string name="setup_approval_required">المشترك غير ظاهر في حسابك. اطلب من الإدارة اعتماده وربطه بحسابك. إعداد الشبكة لا يمنح صلاحيات.</string>
+    <string name="setup_device_online">المشترك المعتمد لحسابك متصل بالخادم. تُطبّق صلاحيات الحساب والمخارج.</string>
+    <string name="setup_device_waiting">المشترك معيّن لحسابك لكنه لم يتصل بالخادم بعد.</string>
+</resources>

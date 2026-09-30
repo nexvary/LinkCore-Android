@@ -18,8 +18,8 @@ android {
         applicationId 'com.fgmachines.rck'
         minSdk 26
         targetSdk 35
-        versionCode 45
-        versionName '2.1'
+        versionCode 46
+        versionName '2.1.1'
         manifestPlaceholders = [appLabel: 'FG Link']
         buildConfigField 'boolean', 'RELEASE_INTEGRITY_ENFORCED', 'false'
     }

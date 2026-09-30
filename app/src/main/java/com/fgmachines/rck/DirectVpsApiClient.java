@@ -11,35 +11,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import javax.net.ssl.HttpsURLConnection;
 
-/** Owner panel client. HTTPS only; credentials stay in memory, never in preferences. */
+/** Subscriber-only HTTPS client. Credentials and session tokens stay in memory. */
 public final class DirectVpsApiClient implements AutoCloseable {
     public static final String DEFAULT_SERVER = "https://link.fgmachines.org";
     private final String origin;
     interface ConnectionFactory { HttpsURLConnection open(String url) throws IOException; }
     private final ConnectionFactory connections;
-    private String apiPrefix = "/panel/api/direct";
+    private static final String API_PREFIX = "/api/v1/direct";
     private volatile String authorization;
     private volatile HttpsURLConnection active;
 
-    public DirectVpsApiClient(String server, String username, String password) {
-        this(server, username, password, url -> (HttpsURLConnection) URI.create(url).toURL().openConnection());
-    }
-
-    DirectVpsApiClient(String server, String username, String password, ConnectionFactory connections) {
+    private DirectVpsApiClient(String server, ConnectionFactory connections) {
         origin = normalizeServer(server);
         this.connections = connections;
-        if (username == null || username.trim().isEmpty() || username.contains(":")
-                || username.contains("\n") || username.contains("\r")
-                || password == null || password.isEmpty()) {
-            throw new IllegalArgumentException("credentials");
-        }
-        authorization = "Basic " + Base64.getEncoder().encodeToString(
-                (username.trim() + ":" + password).getBytes(StandardCharsets.UTF_8));
+        authorization = "";
     }
 
     static String normalizeServer(String server) {
@@ -60,7 +49,7 @@ public final class DirectVpsApiClient implements AutoCloseable {
     }
 
     public List<Device> devices() throws IOException, JSONException {
-        return parseDevices(request("GET", apiPrefix + "/devices"));
+        return parseDevices(request("GET", API_PREFIX + "/devices"));
     }
 
     /** Subscriber login never sends owner Basic credentials to the public API. */
@@ -69,17 +58,14 @@ public final class DirectVpsApiClient implements AutoCloseable {
     }
 
     static DirectVpsApiClient subscriber(String server, ConnectionFactory factory) {
-        DirectVpsApiClient api = new DirectVpsApiClient(server, "unused", "unused", factory);
-        api.authorization = "";
-        api.apiPrefix = "/api/v1/direct";
-        return api;
+        return new DirectVpsApiClient(server, factory);
     }
 
     public void loginSubscriber(String username, String password) throws IOException, JSONException {
         JSONObject credentials = new JSONObject();
         credentials.put("username", username);
         credentials.put("password", password);
-        JSONObject response = request("POST", apiPrefix + "/auth/login", credentials);
+        JSONObject response = request("POST", API_PREFIX + "/auth/login", credentials);
         String token = response.optString("access_token");
         if (!"direct-vps".equals(response.optString("source")) || !token.matches("fgd_[A-Za-z0-9_-]{43}")) {
             throw new IOException("protocol");
@@ -88,13 +74,13 @@ public final class DirectVpsApiClient implements AutoCloseable {
     }
 
     public void logoutSubscriber() throws IOException, JSONException {
-        if (apiPrefix.equals("/api/v1/direct") && authorization != null && !authorization.isEmpty()) {
-            try { request("POST", apiPrefix + "/auth/logout"); } finally { close(); }
+        if (authorization != null && !authorization.isEmpty()) {
+            try { request("POST", API_PREFIX + "/auth/logout"); } finally { close(); }
         }
     }
 
     public String setOutlet(String mac, int outlet, boolean on) throws IOException, JSONException {
-        JSONObject result = request("POST", commandPath(mac, outlet, on).replace("/panel/api/direct", apiPrefix));
+        JSONObject result = request("POST", commandPath(mac, outlet, on));
         if (!"direct-vps".equals(result.optString("source"))) throw new IOException("protocol");
         String status = result.optString("status");
         if (!status.equals("confirmed") && !status.equals("failed") && !status.equals("timeout")) {
@@ -107,7 +93,7 @@ public final class DirectVpsApiClient implements AutoCloseable {
         if (mac == null || !mac.matches("[0-9a-fA-F]{12}") || outlet < 1 || outlet > 4) {
             throw new IllegalArgumentException("outlet");
         }
-        return "/panel/api/direct/devices/" + mac.toUpperCase(Locale.ROOT)
+        return API_PREFIX + "/devices/" + mac.toUpperCase(Locale.ROOT)
                 + "/outlets/" + outlet + "?state=" + (on ? "on" : "off");
     }
 

@@ -19,8 +19,6 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
 import androidx.appcompat.app.AppCompatActivity;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -30,7 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.json.JSONObject;
 
-/** Experimental owner client for the existing authenticated VPS panel. */
+/** Personal-account client for Direct VPS devices and per-outlet permissions. */
 public final class DirectVpsActivity extends AppCompatActivity {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -39,7 +37,6 @@ public final class DirectVpsActivity extends AppCompatActivity {
     private TextView message;
     private EditText server, username, password;
     private Button connect;
-    private Spinner loginType;
     private List<DirectVpsApiClient.Device> devices = new ArrayList<>();
     private boolean resumed, fetching, pending, fresh;
     private int generation;
@@ -68,6 +65,15 @@ public final class DirectVpsActivity extends AppCompatActivity {
                             message.setText(R.string.direct_unavailable);
                         }).show();
             });
+    private String setupSuffix;
+    private final ActivityResultLauncher<Intent> setupLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    setupSuffix = result.getData().getStringExtra(StripSetupActivity.RESULT_SUFFIX);
+                    message.setText(R.string.setup_network_written);
+                    refresh(false);
+                }
+            });
     private String pendingMac;
     private int pendingOutlet;
     private final Runnable poll = () -> refresh(false);
@@ -85,17 +91,15 @@ public final class DirectVpsActivity extends AppCompatActivity {
         }));
         login = new LinearLayout(this);
         login.setOrientation(LinearLayout.VERTICAL);
-        loginType = new Spinner(this);
-        ArrayAdapter<String> roles = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
-                new String[]{getString(R.string.direct_customer_login), getString(R.string.direct_owner_login)});
-        roles.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        loginType.setAdapter(roles);
-        loginType.setSelection(getPreferences(MODE_PRIVATE).getInt("login_type", 0));
-        login.addView(loginType);
         server = input(R.string.direct_server, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         server.setText(getPreferences(MODE_PRIVATE).getString("server", DirectVpsApiClient.DEFAULT_SERVER));
         username = input(R.string.direct_username, InputType.TYPE_CLASS_TEXT);
-        username.setText(getPreferences(MODE_PRIVATE).getString("username", ""));
+        // Old owner selections cannot become personal-account credentials after upgrade.
+        boolean oldOwner = getPreferences(MODE_PRIVATE).getInt("login_type", 0) == 1;
+        username.setText(oldOwner ? "" : getPreferences(MODE_PRIVATE).getString("username", ""));
+        android.content.SharedPreferences.Editor migration = getPreferences(MODE_PRIVATE).edit().remove("login_type");
+        if (oldOwner) migration.remove("username");
+        migration.apply();
         password = input(R.string.direct_password,
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         password.setSaveEnabled(false);
@@ -103,6 +107,12 @@ public final class DirectVpsActivity extends AppCompatActivity {
         connect = DirectVpsViews.button(this, getString(R.string.direct_login), v -> signIn());
         login.addView(connect);
         page.addView(login);
+        setupSuffix = getIntent().getStringExtra(StripSetupActivity.RESULT_SUFFIX);
+        page.addView(DirectVpsViews.button(this, getString(R.string.setup_strip), v -> {
+            Intent intent = new Intent(this, StripSetupActivity.class);
+            intent.putExtra(StripSetupActivity.EXTRA_DIRECT, true);
+            setupLauncher.launch(intent);
+        }));
         Button logout = DirectVpsViews.button(this, getString(R.string.direct_logout), v -> signOut());
         page.addView(logout);
         message = DirectVpsViews.text(this, "", 15);
@@ -140,26 +150,23 @@ public final class DirectVpsActivity extends AppCompatActivity {
 
     private void signIn() {
         if (client != null || fetching) return;
-        boolean subscriber = loginType.getSelectedItemPosition() == 0;
         String loginUsername = username.getText().toString().trim();
         String loginPassword = password.getText().toString();
-        if (loginUsername.length() < (subscriber ? 3 : 1) || loginPassword.isEmpty()) {
+        if (loginUsername.length() < 3 || loginPassword.isEmpty()) {
             message.setText(R.string.direct_login_input_error);
             return;
         }
         try {
-            client = subscriber ? DirectVpsApiClient.subscriber(server.getText().toString())
-                    : new DirectVpsApiClient(server.getText().toString(), loginUsername, loginPassword);
+            client = DirectVpsApiClient.subscriber(server.getText().toString());
         } catch (IllegalArgumentException e) {
             message.setText(R.string.direct_login_input_error);
             return;
         }
         getPreferences(MODE_PRIVATE).edit().putString("server", server.getText().toString().trim())
-                .putString("username", loginUsername).putInt("login_type", loginType.getSelectedItemPosition()).apply();
+                .putString("username", loginUsername).remove("login_type").apply();
         password.setText("");
         connect.setEnabled(false);
         message.setText(R.string.direct_loading);
-        if (!subscriber) { refresh(true); return; }
         fetching = true;
         int session = generation;
         DirectVpsApiClient api = client;
@@ -219,6 +226,15 @@ public final class DirectVpsActivity extends AppCompatActivity {
                     fetching = false;
                     login.setVisibility(View.GONE);
                     if (firstLogin) message.setText(R.string.direct_connected);
+                    if (setupSuffix != null) {
+                        DirectVpsApiClient.Device configured = null;
+                        for (DirectVpsApiClient.Device device : latest) {
+                            if (device.mac.endsWith(setupSuffix)) { configured = device; break; }
+                        }
+                        message.setText(configured == null ? R.string.setup_approval_required
+                                : configured.online() ? R.string.setup_device_online : R.string.setup_device_waiting);
+                        if (configured != null && configured.online()) setupSuffix = null;
+                    }
                     render();
                     schedule();
                 });

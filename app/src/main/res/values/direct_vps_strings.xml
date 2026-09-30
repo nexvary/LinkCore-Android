@@ -1,18 +1,17 @@
-<!-- The experimental owner screen supports Arabic and English; other locales use English. -->
+<!-- The subscriber screen supports Arabic and English; other locales use English. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="direct_title">Direct VPS</string>
     <string name="direct_choose_mode">FG Link 2.1 · Connection</string>
     <string name="direct_choose_help">Choose how to control your devices. LAN and ZeroTier remain available independently of the VPS.</string>
     <string name="direct_local">Android / LAN / ZeroTier</string>
     <string name="direct_switch_mode">Choose connection mode</string>
-    <string name="direct_owner_help">Owner access using your existing panel login. Devices connect directly to the VPS; this phone is an HTTPS client. Your password stays in memory until logout or closing this screen.</string>
     <string name="direct_server">HTTPS server</string>
     <string name="direct_username">Username</string>
     <string name="direct_password">Password</string>
     <string name="direct_login">Connect</string>
     <string name="direct_logout">Log out</string>
     <string name="direct_refresh">Refresh</string>
-    <string name="direct_login_input_error">Enter an HTTPS server address and your panel username and password.</string>
+    <string name="direct_login_input_error">Enter an HTTPS server address and your personal account username and password.</string>
     <string name="direct_loading">Connecting…</string>
     <string name="direct_logged_out">Logged out. Enter your account credentials to connect.</string>
     <string name="direct_connected">Connected to the Direct VPS API.</string>
@@ -33,10 +32,9 @@
     <string name="direct_action_off">Tap to turn off</string>
     <string name="direct_action_on">Tap to turn on</string>
     <string name="direct_protection">Overload / heat: %1$s / %2$s · Event: %3$s</string>
-    <string name="direct_auth_error">Login rejected or expired. Check the selected account type, username and password.</string>
-    <string name="direct_users_help">Choose Customer for the account issued by the owner. Each customer sees only assigned devices and outlets. Owner login uses the existing panel credentials. Passwords and session tokens stay in memory.</string>
+    <string name="direct_auth_error">Login rejected or expired. Check your personal account credentials.</string>
+    <string name="direct_users_help">Sign in with your personal account. Only devices and outlets approved for your account are shown. Passwords and tokens stay in memory.</string>
     <string name="direct_customer_login">Customer account</string>
-    <string name="direct_owner_login">Owner / panel administrator</string>
     <string name="direct_view_only">View only · no control outlets assigned</string>
     <string name="direct_rate_limited">Too many requests. Wait a minute before retrying.</string>
     <string name="direct_denied">Access denied by the panel or outlet policy.</string>

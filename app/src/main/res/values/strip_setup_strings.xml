@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="setup_strip">Set up power strip</string>
+    <string name="setup_back">Back</string>
+    <string name="setup_instructions">For a new strip only. Choose LAN or Direct VPS, enter its setup network and your router Wi-Fi. Temporarily join TONLY_TAP/ONLY_TAP, write the settings, then reconnect to Internet. Existing working strips need no setup. Wi-Fi setup does not grant device ownership or control.</string>
+    <string name="setup_ap_name">Strip setup network (TONLY_TAP_…)</string>
+    <string name="setup_home_name">Router Wi-Fi name</string>
+    <string name="setup_home_password">Router Wi-Fi password</string>
+    <string name="setup_local_controller">Existing local Controller IPv4</string>
+    <string name="setup_resolve">Prepare server address automatically</string>
+    <string name="setup_consent">I am setting up a new strip and understand this changes its network settings.</string>
+    <string name="setup_wifi_settings">Open Wi-Fi settings / return to Internet</string>
+    <string name="setup_automatic">Connect to setup network and configure</string>
+    <string name="setup_manual">Configure after joining setup Wi-Fi manually</string>
+    <string name="setup_check_account">Returned to Internet — check my devices</string>
+    <string name="setup_resolve_first">Prepare the server address while Internet is connected, before joining setup Wi-Fi.</string>
+    <string name="setup_local_preserved">Local route: keep your existing Controller address. This wizard does not change saved Controller preferences.</string>
+    <string name="setup_resolving">Preparing server address…</string>
+    <string name="setup_resolve_failed">Could not prepare server address. Reconnect to Internet and retry. Nothing was written to the strip.</string>
+    <string name="setup_server_ready">Server address ready. You can now join the setup network.</string>
+    <string name="setup_invalid">Check setup network, router Wi-Fi, Controller address and the new-strip confirmation. Prepare the server address before disconnecting Internet.</string>
+    <string name="setup_network_written">The strip acknowledged network settings. Reconnect to Internet, then check your personal account. This does not confirm VPS connection or grant control.</string>
+    <string name="setup_local_written">The strip acknowledged network settings. Return to your local network and verify connection in LAN/ZeroTier.</string>
+    <string name="setup_approval_required">This strip is not visible in your account. Ask administration to approve and assign it. Network setup grants no permissions.</string>
+    <string name="setup_device_online">Your assigned strip is connected to the server. Account and outlet permissions apply.</string>
+    <string name="setup_device_waiting">The strip is assigned to your account but has not connected to the server yet.</string>
+</resources>

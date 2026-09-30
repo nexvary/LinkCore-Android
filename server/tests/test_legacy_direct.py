@@ -315,3 +315,23 @@ def test_owner_chosen_customer_password_authenticates_without_plaintext_storage(
     with factory() as db:
         assert password not in db.get(DirectUser, user_id).password_hash
     assert password not in client.get('/panel/api/direct/users', headers=owner).text
+
+
+def test_network_setup_or_mac_knowledge_never_grants_ownership(deployed):
+    client, factory, owner, calls = deployed
+    alice = new_user(client, owner, 'setupcustomer', mac=None)
+    headers = alice['headers']
+    assert client.get('/api/v1/direct/devices', headers=headers).json()['devices'] == []
+    assert client.post('/panel/api/direct/registrations', headers=headers, json={'mac': MAC}).status_code == 403
+    assert client.put(f'/panel/api/direct/users/{alice["id"]}/devices/{MAC}', headers=headers,
+                      json={'view_mask': 15, 'control_mask': 15}).status_code == 403
+    assert client.post(f'/api/v1/direct/devices/{MAC}/outlets/1?state=on', headers=headers).status_code == 404
+    assert client.get('/api/v1/direct/devices', headers=headers).json()['devices'] == []
+    assert not calls
+    assigned = client.put(f'/panel/api/direct/users/{alice["id"]}/devices/{MAC}', headers=owner,
+                          json={'view_mask': 15, 'control_mask': 0})
+    assert assigned.status_code == 200
+    devices = client.get('/api/v1/direct/devices', headers=headers).json()['devices']
+    assert len(devices) == 1 and devices[0]['mac'] == MAC and devices[0]['connected']
+    assert devices[0]['allowed_outlets'] == []
+    assert not calls

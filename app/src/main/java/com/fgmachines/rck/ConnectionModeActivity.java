@@ -20,6 +20,8 @@ public final class ConnectionModeActivity extends AppCompatActivity {
             startActivity(new Intent(this, DirectVpsActivity.class));
             finish();
         }));
+        page.addView(DirectVpsViews.button(this, getString(R.string.setup_strip), v ->
+                startActivity(new Intent(this, StripSetupActivity.class))));
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.setFillViewport(true);
         scroll.addView(page);

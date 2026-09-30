@@ -658,7 +658,8 @@ public class MainActivity extends AppCompatActivity {
             final int page = i;
             navButtons[i].setOnClickListener(v -> showPage(page));
         }
-        findViewById(R.id.homeToSetup).setOnClickListener(v -> showPage(1));
+        findViewById(R.id.homeToSetup).setOnClickListener(v ->
+                startActivity(new Intent(this, StripSetupActivity.class)));
         findViewById(R.id.homeToScan).setOnClickListener(v -> showPage(2));
         findViewById(R.id.homeToRemote).setOnClickListener(v ->
                 startActivity(new Intent(this, RemoteActivity.class)));
