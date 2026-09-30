@@ -300,3 +300,18 @@ def test_customer_batch_assignment_is_validated_and_scoped(deployed, monkeypatch
     with factory() as db:
         assert db.get(legacy_direct.DirectRegistration, '112233445566') is None
     assert len(client.get('/panel/api/direct/users', headers=owner).json()['users'][0]['grants']) == 2
+
+
+def test_owner_chosen_customer_password_authenticates_without_plaintext_storage(deployed):
+    client, factory, owner, calls = deployed
+    password = 'ChosenFixturePassword123'
+    response = client.post('/panel/api/direct/users', headers=owner,
+                           json={'username': 'chosenpassword', 'password': password})
+    assert response.status_code == 200 and response.json()['password'] == password
+    user_id = response.json()['id']
+    login = client.post('/api/v1/direct/auth/login',
+                        json={'username': 'chosenpassword', 'password': password})
+    assert login.status_code == 200 and login.json()['access_token']
+    with factory() as db:
+        assert password not in db.get(DirectUser, user_id).password_hash
+    assert password not in client.get('/panel/api/direct/users', headers=owner).text
