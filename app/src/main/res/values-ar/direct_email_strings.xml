@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="direct_email_settings">إعداد تنبيهات البريد</string>
+    <string name="direct_email_login">سجّل الدخول بحسابك الشخصي في Direct VPS لإعداد تنبيهات البريد.</string>
+    <string name="direct_email_ready">SMTP مجهّز. تعمل التنبيهات على الخادم حتى عند إغلاق التطبيق.</string>
+    <string name="direct_email_not_ready">إرسال البريد غير مجهّز على الخادم. يجب على الإدارة ضبط SMTP قبل تفعيل التنبيهات.</string>
+    <string name="direct_email_address">عنوان بريدك الإلكتروني</string>
+    <string name="direct_email_limits">تشمل التنبيهات الانقطاع بعد دقيقتين والحماية والحمل والحرارة للأجهزة والمخارج المسموح لك بمشاهدتها.</string>
+    <string name="direct_email_power">حد الحمل (وات)</string>
+    <string name="direct_email_temperature">حد الحرارة (°م)</string>
+    <string name="direct_email_save">حفظ</string>
+    <string name="direct_email_test">حفظ وإرسال اختبار</string>
+    <string name="direct_email_invalid">أدخل بريدًا صحيحًا وحملًا بين 100 و10000 وات وحرارة بين 30 و120 درجة.</string>
+    <string name="direct_email_test_sent">قبل خادم البريد رسالة الاختبار. تحقق من الوارد والبريد غير المرغوب فيه.</string>
+    <string name="direct_email_saved">تم حفظ إعدادات البريد على الخادم.</string>
+    <string name="direct_email_delivery_failed">فشل إرسال SMTP. راجع إعدادات البريد على الخادم؛ لم يتأكد الإرسال.</string>
+    <string name="direct_email_update_server">الخادم يحتاج تحديث تنبيهات Direct قبل استخدام إعدادات البريد.</string>
+</resources>

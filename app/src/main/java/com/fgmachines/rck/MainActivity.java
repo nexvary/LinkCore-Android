@@ -133,6 +133,8 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton forgetDeviceButton;
     private MaterialSwitch alertsSwitch;
     private MaterialSwitch emailAlertsSwitch;
+    private DirectVpsPane directPane;
+    private boolean updatingDirectEmail;
     private MaterialSwitch[] autoOffSwitches;
     private TextInputEditText[] autoOffMinutesInputs;
     private MaterialSwitch[] powerLimitSwitches;
@@ -293,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
         bindViews();
         configureNavigation();
         configureCompactSettings();
+        configureDevicesTransport();
 
         // CI-only page capture. The actual Android view hierarchy is rendered
         // into a PNG by UiGateCapture so hosted-emulator black framebuffer
@@ -300,6 +303,13 @@ public class MainActivity extends AppCompatActivity {
         boolean uiGateBuild = UiGateCapture.isEnabled(this);
         String uiTestPage = getIntent().getStringExtra("fg_ui_test_page");
         if (uiGateBuild && uiTestPage != null) {
+            if ("direct_devices".equals(uiTestPage) || "local_devices".equals(uiTestPage)) {
+                uiGateActive = true;
+                selectDevicesTransport("direct_devices".equals(uiTestPage));
+                showPage(6);
+                UiGateCapture.capture(this, uiTestPage);
+                return;
+            }
             if ("dashboard".equals(uiTestPage)) {
                 uiGateActive = true;
                 showPage(0);
@@ -371,9 +381,6 @@ public class MainActivity extends AppCompatActivity {
         controllerHub = ControllerHub.get(this);
         smartHomePlatform = new SmartHomePlatform(this, controllerHub);
 
-        Intent controllerIntent = new Intent(this, MttlControllerService.class);
-        controllerIntent.setAction(MttlControllerService.ACTION_START);
-        ContextCompat.startForegroundService(this, controllerIntent);
         configurePlatformHub();
         configureEcosystemBridge();
         configureLanguageSelector();
@@ -399,7 +406,11 @@ public class MainActivity extends AppCompatActivity {
         configureAboutLinks();
         restoreSetupProfile();
         configureControllerRoute();
-        startLocalController();
+        if (!directDevicesSelected()) startLocalModeIfNeeded();
+        if (getIntent().getBooleanExtra("open_direct_devices", false)) {
+            selectDevicesTransport(true);
+            showPage(6);
+        }
         updateHotspotStatus(false);
 
         scanButton.setOnClickListener(v -> startScan());
@@ -653,6 +664,43 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private boolean directDevicesSelected() {
+        return "direct".equals(getSharedPreferences(PREFS, MODE_PRIVATE).getString("devices_transport", "local"));
+    }
+
+    private void configureDevicesTransport() {
+        directPane = new DirectVpsPane(this);
+        ((android.widget.FrameLayout) findViewById(R.id.directDevicesContainer)).addView(directPane.createView());
+        findViewById(R.id.devicesLocalTab).setOnClickListener(v -> {
+            selectDevicesTransport(false);
+            startLocalModeIfNeeded();
+        });
+        findViewById(R.id.devicesDirectTab).setOnClickListener(v -> selectDevicesTransport(true));
+        selectDevicesTransport(directDevicesSelected());
+    }
+
+    private void selectDevicesTransport(boolean direct) {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("devices_transport", direct ? "direct" : "local").apply();
+        findViewById(R.id.directDevicesContainer).setVisibility(direct ? View.VISIBLE : View.GONE);
+        findViewById(R.id.localDevicesScroll).setVisibility(direct ? View.GONE : View.VISIBLE);
+        findViewById(R.id.devicesDirectTab).setAlpha(direct ? 1f : 0.65f);
+        findViewById(R.id.devicesLocalTab).setAlpha(direct ? 0.65f : 1f);
+        if (directPane != null) directPane.setVisible(currentPage == 6 && direct);
+    }
+
+    private void startLocalModeIfNeeded() {
+        Intent controllerIntent = new Intent(this, MttlControllerService.class);
+        controllerIntent.setAction(MttlControllerService.ACTION_START);
+        ContextCompat.startForegroundService(this, controllerIntent);
+        startLocalController();
+    }
+
+    void updateDirectEmailSwitch(boolean enabled) {
+        updatingDirectEmail = true;
+        if (emailAlertsSwitch != null) emailAlertsSwitch.setChecked(enabled);
+        updatingDirectEmail = false;
+    }
+
     private void configureNavigation() {
         for (int i = 0; i < navButtons.length; i++) {
             final int page = i;
@@ -751,6 +799,7 @@ public class MainActivity extends AppCompatActivity {
         if (page < 0 || page >= pages.length) return;
         if (page == 6 && fleetStore != null) refreshDeviceCards();
         currentPage = page;
+        if (directPane != null) directPane.setVisible(page == 6 && directDevicesSelected());
         for (int i = 0; i < pages.length; i++) {
             boolean selected = i == page;
             pages[i].setVisibility(selected ? View.VISIBLE : View.GONE);
@@ -2942,25 +2991,16 @@ public class MainActivity extends AppCompatActivity {
         });
         if (alertsSwitch.isChecked()) requestNotificationPermissionIfNeeded();
 
-        emailAlertsSwitch.setChecked(
-                prefs.getBoolean(MttlControllerService.PREF_EMAIL_ALERTS_ENABLED, false));
+        emailAlertsSwitch.setChecked(false);
         emailAlertsSwitch.setOnCheckedChangeListener((button, checked) -> {
-            SharedPreferences current = getSharedPreferences(PREFS, MODE_PRIVATE);
-            String endpoint = current.getString(PREF_REMOTE_ENDPOINT, "");
-            String token = current.getString(PREF_REMOTE_TOKEN, "");
-            if (checked && (endpoint == null || endpoint.trim().isEmpty()
-                    || token == null || token.trim().isEmpty())) {
-                button.setChecked(false);
-                Snackbar.make(button, R.string.email_alerts_requires_cloud,
-                        Snackbar.LENGTH_LONG).show();
-                return;
-            }
-            current.edit()
-                    .putBoolean(MttlControllerService.PREF_EMAIL_ALERTS_ENABLED, checked)
-                    .apply();
-            Snackbar.make(button,
-                    checked ? R.string.email_alerts_enabled : R.string.email_alerts_disabled,
-                    Snackbar.LENGTH_SHORT).show();
+            if (updatingDirectEmail || directPane == null) return;
+            // The switch reflects confirmed server state; no legacy token or optimistic local enable.
+            updatingDirectEmail = true;
+            button.setChecked(!checked);
+            updatingDirectEmail = false;
+            selectDevicesTransport(true);
+            showPage(6);
+            directPane.openEmailSettings();
         });
     }
 
@@ -3781,6 +3821,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (uiGateActive) return;
+        if (directPane != null) directPane.resume();
         if (hotspotStatus != null) updateHotspotStatus(false);
         updateSetupReadiness();
         updateAutomationSummary();
@@ -3794,7 +3835,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        if (directPane != null) directPane.stop();
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
+        if (directPane != null) directPane.close();
         if (provisioner != null) provisioner.close();
         if (controllerHub != null && controllerListener != null) {
             controllerHub.removeListener(controllerListener);

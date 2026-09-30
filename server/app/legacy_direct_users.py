@@ -171,6 +171,9 @@ def install_users(app, factory, guard, log, registered, execute):
                 raise HTTPException(401, 'Direct login expired or disabled', headers={'WWW-Authenticate': 'Bearer'})
             return user.id
 
+    from .direct_email import install_email
+    install_email(app, factory, authorized, limits, management_log)
+
     @app.post('/api/v1/direct/auth/login')
     def login(body: Login, request: Request, response: Response):
         username = body.username.strip().lower()

@@ -10,11 +10,13 @@ COMMIT="${FG_DIRECT_SOURCE_COMMIT:-}"
 [[ -f "$SERVER_DIR/.env" && -f "$SERVER_DIR/app/database.py" && -f "$LAB_DIR/server/direct_mttl_lab.py" ]] || { echo 'Existing server/lab not found' >&2; exit 1; }
 grep -q '# FG_DIRECT_EXTENSION_V1' "$SERVER_DIR/app/main.py" || { echo 'Working Direct extension required first' >&2; exit 1; }
 cd "$SERVER_DIR"
+OVERRIDE="$SERVER_DIR/docker-compose.override.yml"
+[[ -f "$OVERRIDE" ]] && grep -q '^# FG Link Direct VPS managed override$' "$OVERRIDE" || { echo 'Expected managed Direct Compose override; stopped before changes' >&2; exit 1; }
 docker compose config --quiet
 STAGING=$(mktemp -d /tmp/fg-direct-users.XXXXXX)
 trap 'rm -rf "$STAGING"' EXIT
 BASE="https://raw.githubusercontent.com/nexvary/LinkCore-Android/$COMMIT/server"
-for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py; do
+for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py direct_email.py; do
   curl -fsSL --retry 2 "$BASE/app/$module" -o "$STAGING/$module"
 done
 curl -fsSL --retry 2 "$BASE/direct_mttl_lab.py" -o "$STAGING/direct_mttl_lab.py"
@@ -22,6 +24,7 @@ python3 -m compileall -q "$STAGING"
 BACKUP="$SERVER_DIR/direct-users-backup-$(date -u +%Y%m%dT%H%M%S)-$$"
 mkdir -m 700 "$BACKUP"
 cp -a "$SERVER_DIR/app" "$BACKUP/app"
+cp -a "$OVERRIDE" "$BACKUP/docker-compose.override.yml"
 cp -a "$LAB_DIR/server/direct_mttl_lab.py" "$BACKUP/daemon.previous.py"
 [[ ! -f "$DROPIN_DIR/direct-users.conf" ]] || cp -a "$DROPIN_DIR/direct-users.conf" "$BACKUP/direct-users.previous.conf"
 # Detect the engine without printing credentials. No runtime changes yet.
@@ -73,6 +76,7 @@ esac
 rollback(){
   trap - ERR
   cp -a "$BACKUP/app/." "$SERVER_DIR/app/"
+cp -a "$BACKUP/docker-compose.override.yml" "$OVERRIDE"
   install -m 0755 "$BACKUP/daemon.previous.py" "$LAB_DIR/server/direct_mttl_lab.py"
   if [[ -f "$BACKUP/direct-users.previous.conf" ]]; then
     install -m 0644 "$BACKUP/direct-users.previous.conf" "$DROPIN_DIR/direct-users.conf"
@@ -86,7 +90,18 @@ rollback(){
   exit 1
 }
 trap rollback ERR
-for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py; do
+python3 - "$OVERRIDE" <<'SMTPPY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1]); source = p.read_text()
+variables = {'HOST':'', 'PORT':'587', 'USER':'', 'PASSWORD':'', 'FROM':'', 'SECURITY':'starttls'}
+missing = ''.join('      FGRCK_SMTP_' + key + ': ${FGRCK_SMTP_' + key + ':-' + value + '}\n'
+                  for key,value in variables.items() if 'FGRCK_SMTP_' + key + ':' not in source)
+if '    environment:\n' not in source: raise SystemExit('Managed override missing API environment')
+p.write_text(source.replace('    environment:\n', '    environment:\n' + missing, 1))
+SMTPPY
+docker compose config --quiet
+for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py direct_email.py; do
   install -m 0644 "$STAGING/$module" "$SERVER_DIR/app/$module"
 done
 install -m 0755 "$STAGING/direct_mttl_lab.py" "$LAB_DIR/server/direct_mttl_lab.py"

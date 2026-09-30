@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="direct_email_settings">Email alerts</string>
+    <string name="direct_email_login">Sign in with your personal Direct VPS account to configure email alerts.</string>
+    <string name="direct_email_ready">SMTP is configured. Alerts run on the server even when the app is closed.</string>
+    <string name="direct_email_not_ready">Email delivery is not configured on the server. Administration must configure SMTP before enabling alerts.</string>
+    <string name="direct_email_address">Your email address</string>
+    <string name="direct_email_limits">Alerts cover disconnection after 2 minutes, protection, power and temperature for your permitted devices/outlets.</string>
+    <string name="direct_email_power">Power threshold (W)</string>
+    <string name="direct_email_temperature">Temperature threshold (°C)</string>
+    <string name="direct_email_save">Save</string>
+    <string name="direct_email_test">Save and send test</string>
+    <string name="direct_email_invalid">Enter a valid email, power 100–10000 W and temperature 30–120 °C.</string>
+    <string name="direct_email_test_sent">The mail server accepted the test message. Check your inbox and spam folder.</string>
+    <string name="direct_email_saved">Email preferences saved on the server.</string>
+    <string name="direct_email_delivery_failed">SMTP delivery failed. Check server email settings; no delivery is confirmed.</string>
+    <string name="direct_email_update_server">This server needs the Direct email update before email settings can be used.</string>
+</resources>

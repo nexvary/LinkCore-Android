@@ -30,7 +30,7 @@ GID=$(getent group fgrck-mttl-ipc | cut -d: -f3)
 [[ "$GID" =~ ^[0-9]+$ ]] || { echo 'Existing Direct IPC group is missing' >&2; exit 1; }
 STAGING=$(mktemp -d /tmp/fg-legacy-direct.XXXXXX)
 trap 'rm -rf "$STAGING"' EXIT
-git clone --depth 1 --single-branch --branch private/direct-mttl-lab https://github.com/nexvary/LinkCore-Android.git "$STAGING/repo"
+git clone --depth 1 --single-branch --branch release/fg-link-2.1 https://github.com/nexvary/LinkCore-Android.git "$STAGING/repo"
 SOURCE="$STAGING/repo/server"
 BACKUP="$SERVER_DIR/direct-extension-backup-$(date -u +%Y%m%dT%H%M%S)-$$"
 mkdir -m 700 "$BACKUP"
@@ -65,7 +65,7 @@ rollback(){
 }
 trap rollback ERR
 # Keep the deployed Dockerfile, requirements, SQLite location and legacy routes.
-for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py; do
+for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py direct_email.py; do
   install -m 0644 "$SOURCE/app/$module" "$SERVER_DIR/app/$module"
 done
 python3 - "$SERVER_DIR/app/main.py" "$SERVER_DIR/.env" "$LAB_ENV" "$MAC" <<'PY'
@@ -93,6 +93,12 @@ cat > "$OVERRIDE" <<EOF
 services:
   api:
     environment:
+      FGRCK_SMTP_HOST: \${FGRCK_SMTP_HOST:-}
+      FGRCK_SMTP_PORT: \${FGRCK_SMTP_PORT:-587}
+      FGRCK_SMTP_USER: \${FGRCK_SMTP_USER:-}
+      FGRCK_SMTP_PASSWORD: \${FGRCK_SMTP_PASSWORD:-}
+      FGRCK_SMTP_FROM: \${FGRCK_SMTP_FROM:-}
+      FGRCK_SMTP_SECURITY: \${FGRCK_SMTP_SECURITY:-starttls}
       FGRCK_DIRECT_MTTL_MACS: \${FGRCK_DIRECT_MTTL_MACS:-}
       FGRCK_DIRECT_MTTL_SOCKET: /run/nexvary-direct-mttl/admin.sock
     group_add:

@@ -710,7 +710,7 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="usb_control_not_exposed">This MTTL-W01 firmware does not expose verified independent USB switching yet.</string>
 
     <string name="email_alerts">Email alerts</string>
-    <string name="email_alerts_note">Optional: send protection/offline alerts to the email address of the signed-in cloud account. Requires an HTTPS VPS/cloud login and SMTP configured on the server.</string>
+    <string name="email_alerts_note">Configure alerts for your personal Direct VPS account. SMTP delivery runs on the server.</string>
     <string name="email_alerts_requires_cloud">Email alerts require a signed-in HTTPS cloud/VPS account first.</string>
     <string name="email_alerts_enabled">Email alerts enabled</string>
     <string name="email_alerts_disabled">Email alerts disabled</string>

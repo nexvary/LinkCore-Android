@@ -1,0 +1,78 @@
+name: FG Link 2.1 release validation
+on:
+  push:
+    branches: [release/fg-link-2.1]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Test, lint, build
+        run: gradle --no-daemon --max-workers=2 testDebugUnitTest lintRelease assembleDebug assembleRelease
+      - name: Collect unsigned release and signing tool
+        run: |
+          mkdir -p release-validation
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-validation/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" release-validation/
+          cp app/build/outputs/apk/debug/app-debug.apk release-validation/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FG-Link-2.1.2-validation
+          path: |
+            release-validation/*
+            app/build/test-results/testDebugUnitTest/*.xml
+            app/build/reports/lint-results-release.*
+          if-no-files-found: error
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r server/requirements.txt
+      - name: Verify Direct accounts, email, and daemon
+        env:
+          PYTHONPATH: server
+          FGRCK_ENV: test
+          FGRCK_DIRECT_EMAIL_WORKER_ENABLED: 'false'
+        run: pytest -q server/tests/test_legacy_direct.py server/tests/test_direct_email.py server/tests/test_direct_integration.py server/tests/test_direct_mttl_lab.py
+  ui:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FG-Link-2.1.2-validation
+          path: validation-input
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: bash scripts/verify_direct_devices_ui.sh validation-input/release-validation/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FG-Link-2.1.2-UI
+          path: direct-ui-validation/*

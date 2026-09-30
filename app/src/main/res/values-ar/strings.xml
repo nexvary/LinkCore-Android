@@ -703,7 +703,7 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="usb_control_not_exposed">التحكم المستقل في USB غير موثق في بروتوكول MTTL-W01 الحالي، لذلك لن يرسل FG Link أوامر غير مؤكدة.</string>
 
     <string name="email_alerts">تنبيهات عبر البريد الإلكتروني</string>
-    <string name="email_alerts_note">اختياري: إرسال تنبيهات الحماية والانقطاع إلى بريد حساب السحابة المسجل. يتطلب تسجيل الدخول إلى VPS/السحابة عبر HTTPS وضبط SMTP على الخادم.</string>
+    <string name="email_alerts_note">إعداد التنبيهات لحسابك الشخصي في Direct VPS. إرسال SMTP يعمل على الخادم.</string>
     <string name="email_alerts_requires_cloud">تنبيهات البريد تتطلب أولًا تسجيل الدخول إلى حساب السحابة/VPS عبر HTTPS.</string>
     <string name="email_alerts_enabled">تم تفعيل تنبيهات البريد الإلكتروني</string>
     <string name="email_alerts_disabled">تم تعطيل تنبيهات البريد الإلكتروني</string>

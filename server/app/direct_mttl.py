@@ -36,12 +36,17 @@ class DirectMttlAdapter:
     def status(self, mac):
         return self.status_many([mac])[mac]
 
+    def status_many_strict(self, macs):
+        result = self.request("status", timeout=2)
+        if not result.get('ok') or not isinstance(result.get('devices'), list):
+            raise ValueError('Direct status unavailable')
+        sessions = {d['mac']: d for d in result['devices']}
+        return {mac: {**sessions.get(mac, {}), 'connected': bool(sessions.get(mac, {}).get('online', False)),
+                      'control_enabled': not result.get('observe_only', True)} for mac in macs}
+
     def status_many(self, macs):
         try:
-            result = self.request("status", timeout=2)
-            sessions = {d['mac']: d for d in result.get('devices', [])}
-            return {mac: {**sessions.get(mac, {}), 'connected': bool(sessions.get(mac, {}).get('online', False)),
-                          'control_enabled': not result.get('observe_only', True)} for mac in macs}
+            return self.status_many_strict(macs)
         except (OSError, ValueError, KeyError, TypeError):
             return {mac: {'connected': False, 'control_enabled': False, 'outlets': []} for mac in macs}
 

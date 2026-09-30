@@ -79,6 +79,22 @@ public final class DirectVpsApiClient implements AutoCloseable {
         }
     }
 
+    public JSONObject emailSettings() throws IOException, JSONException {
+        return request("GET", API_PREFIX + "/email-settings");
+    }
+
+    public JSONObject saveEmailSettings(String email, boolean enabled, int power, int temperature)
+            throws IOException, JSONException {
+        JSONObject body = new JSONObject();
+        body.put("email", email).put("enabled", enabled).put("power_w", power).put("temperature_c", temperature);
+        return request("PUT", API_PREFIX + "/email-settings", body);
+    }
+
+    public void testEmail() throws IOException, JSONException {
+        JSONObject response = request("POST", API_PREFIX + "/email-settings/test");
+        if (!"sent".equals(response.optString("status"))) throw new IOException("protocol");
+    }
+
     public String setOutlet(String mac, int outlet, boolean on) throws IOException, JSONException {
         JSONObject result = request("POST", commandPath(mac, outlet, on));
         if (!"direct-vps".equals(result.optString("source"))) throw new IOException("protocol");
@@ -115,7 +131,7 @@ public final class DirectVpsApiClient implements AutoCloseable {
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("Cache-Control", "no-store");
             connection.setUseCaches(false);
-            if (method.equals("POST")) {
+            if (method.equals("POST") || method.equals("PUT")) {
                 byte[] payload = body == null ? new byte[0] : body.toString().getBytes(StandardCharsets.UTF_8);
                 connection.setDoOutput(true);
                 connection.setRequestProperty("Content-Type", "application/json");
