@@ -169,8 +169,8 @@ class DirectEmailMonitor:
 def install_email(app, factory, authorized, limits, audit):
     monitor = DirectEmailMonitor(factory, audit)
     app.state.fg_direct_email_monitor = monitor
-    app.add_event_handler('startup', monitor.start)
-    app.add_event_handler('shutdown', monitor.stop)
+    app.on_event('startup')(monitor.start)
+    app.on_event('shutdown')(monitor.stop)
 
     def payload(row):
         return {'source': 'direct-vps', 'smtp_ready': smtp_ready(),

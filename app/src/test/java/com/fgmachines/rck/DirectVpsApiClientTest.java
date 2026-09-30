@@ -162,6 +162,42 @@ public class DirectVpsApiClientTest {
         assertNull(connection.getRequestProperty("Authorization"));
     }
 
+    @Test public void emailPreferencesUsePersonalTokenAndPutJsonAndPropagateDeliveryFailure() throws Exception {
+        String token = "fgd_" + "x".repeat(43);
+        java.util.List<FakeConnection> sent = new java.util.ArrayList<>();
+        int[] responseCode = {200};
+        String[] responseBody = {"{\"source\":\"direct-vps\",\"smtp_ready\":true,\"enabled\":true}"};
+        DirectVpsApiClient api = DirectVpsApiClient.subscriber("https://example.org", url -> {
+            String body = url.endsWith("/auth/login")
+                    ? "{\"source\":\"direct-vps\",\"access_token\":\"" + token + "\"}"
+                    : responseBody[0];
+            try {
+                FakeConnection c = new FakeConnection(responseCode[0], body);
+                sent.add(c); return c;
+            } catch (Exception e) { throw new IOException(e); }
+        });
+        api.loginSubscriber("alice", "customer-test-password");
+        assertTrue(api.emailSettings().getBoolean("smtp_ready"));
+        assertEquals("GET", sent.get(1).getRequestMethod());
+        assertEquals("Bearer " + token, sent.get(1).getRequestProperty("Authorization"));
+        api.saveEmailSettings("alice@example.com", true, 3200, 75);
+        FakeConnection put = sent.get(2);
+        assertEquals("PUT", put.getRequestMethod());
+        JSONObject payload = new JSONObject(put.output.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("alice@example.com", payload.getString("email"));
+        assertEquals(3200, payload.getInt("power_w"));
+        assertEquals(75, payload.getInt("temperature_c"));
+        responseBody[0] = "{\"source\":\"direct-vps\",\"status\":\"queued\"}";
+        assertThrows(IOException.class, api::testEmail);
+        responseCode[0] = 502;
+        assertEquals(502, assertThrows(DirectVpsApiClient.ApiException.class, api::testEmail).status);
+        responseCode[0] = 200;
+        responseBody[0] = "{\"source\":\"direct-vps\",\"status\":\"sent\"}";
+        api.testEmail();
+        assertEquals("POST", sent.get(5).getRequestMethod());
+        assertEquals("Bearer " + token, sent.get(5).getRequestProperty("Authorization"));
+    }
+
     private static final class FakeConnection extends HttpsURLConnection {
         final int code;
         String body;
