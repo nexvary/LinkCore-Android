@@ -91,12 +91,10 @@ class DirectMttlLab:
         self.allowlist_file = os.getenv('NEXVARY_MTTL_ALLOWED_MACS_FILE', '')
         if self.allowlist_file and Path(self.allowlist_file).exists():
             saved = json.loads(Path(self.allowlist_file).read_text())
-            if not isinstance(saved, list) or len(saved) > 256 or any(
+            if not isinstance(saved, list) or any(
                     not isinstance(v, str) or not re.fullmatch(r'[0-9A-F]{12}', v) for v in saved):
                 raise ValueError('invalid persisted MAC allow-list')
             self.allowed_macs.update(saved)
-        if len(self.allowed_macs) > 256:
-            raise ValueError('MAC allow-list capacity exceeded')
         self.expected_model = expected_model.strip().lower()
         self.poll_seconds = max(5, poll_seconds)
         if admin_host != "127.0.0.1":
@@ -346,8 +344,6 @@ class DirectMttlLab:
             if not self.allowlist_file:
                 return {'ok': False, 'error': 'persistent allow-list is not configured'}
             proposed = self.allowed_macs | additions
-            if len(proposed) > 256:
-                return {'ok': False, 'error': 'allow-list capacity exceeded'}
             path = Path(self.allowlist_file)
             temporary = path.with_suffix('.tmp')
             temporary.write_text(json.dumps(sorted(proposed)))

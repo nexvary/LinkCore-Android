@@ -159,3 +159,37 @@ class DirectSessionTests(unittest.IsolatedAsyncioTestCase):
         parsed = parse_getinfo('up:getinfo:1:0;off;3;on;on;1234;00000010;0;0;off;00;25:')
         self.assertEqual(parsed[0]['energy_wh'], 16)
         self.assertEqual(parsed[0]['power_w'], 1.234)
+
+
+class UncappedRegistryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_registry_grows_past_256_and_survives_restart(self):
+        macs = [f'{n:012X}' for n in range(1, 1025)]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'allowed.json'
+            with patch.dict('os.environ', {'NEXVARY_MTTL_ALLOWED_MACS_FILE': str(path)}):
+                lab = DirectMttlLab('127.0.0.1', 0, MAC, 'lgutap', 5, '127.0.0.1', 0, True)
+                # Keep individual requests bounded; total registration is uncapped.
+                for start in range(0, len(macs), 256):
+                    response = await lab.admin_command('allowmany ' + ','.join(macs[start:start+256]))
+                    self.assertTrue(response['ok'])
+                self.assertEqual(lab.allowed_macs, set(macs) | {MAC})
+                saved = json.loads(path.read_text())
+                self.assertEqual(len(saved), 1025)
+                restored = DirectMttlLab('127.0.0.1', 0, MAC, 'lgutap', 5, '127.0.0.1', 0, True)
+                self.assertEqual(restored.allowed_macs, lab.allowed_macs)
+                self.assertTrue((await restored.admin_command('allow FFFFFFFFFFFF'))['ok'])
+                self.assertEqual(len(restored.allowed_macs), 1026)
+                before = path.read_bytes()
+                self.assertFalse((await restored.admin_command('allowmany AABBCCDDEEFF,invalid'))['ok'])
+                self.assertEqual(path.read_bytes(), before)
+                path.write_text(json.dumps(saved + ['invalid']))
+                with self.assertRaises(ValueError):
+                    DirectMttlLab('127.0.0.1', 0, MAC, 'lgutap', 5, '127.0.0.1', 0, True)
+
+    async def test_large_environment_registry_is_accepted_and_invalid_mac_rejected(self):
+        macs = [f'{n:012X}' for n in range(1, 513)]
+        with patch.dict('os.environ', {'NEXVARY_MTTL_ALLOWED_MACS_FILE': ''}):
+            lab = DirectMttlLab('127.0.0.1', 0, ','.join(macs), 'lgutap', 5, '127.0.0.1', 0, True)
+            self.assertEqual(len(lab.allowed_macs), 512)
+            with self.assertRaises(ValueError):
+                DirectMttlLab('127.0.0.1', 0, ','.join(macs) + ',bad', 'lgutap', 5, '127.0.0.1', 0, True)
