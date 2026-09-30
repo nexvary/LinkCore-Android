@@ -5,6 +5,7 @@ set -Eeuo pipefail
 SERVER_DIR="${FGRCK_INSTALL_DIR:-/opt/fg-link-server}"
 LAB_DIR="${NEXVARY_MTTL_INSTALL_DIR:-/opt/nexvary-direct-mttl-lab}"
 LAB_ENV="${NEXVARY_MTTL_ENV_FILE:-/etc/nexvary-direct-mttl-lab.env}"
+DROPIN_DIR="${NEXVARY_MTTL_SYSTEMD_DROPIN_DIR:-/etc/systemd/system/nexvary-direct-mttl-lab.service.d}"
 MAC="${NEXVARY_MTTL_ALLOWED_MAC:-2CE032C7A520}"
 [[ "$MAC" =~ ^[0-9A-Fa-f]{12}$ ]] || { echo 'Invalid MAC' >&2; exit 1; }
 MAC="${MAC^^}"
@@ -38,6 +39,7 @@ for item in .env Dockerfile requirements.txt docker-compose.yml docker-compose.o
   [[ ! -e "$SERVER_DIR/$item" ]] || cp -a "$SERVER_DIR/$item" "$BACKUP/"
 done
 cp -a "$LAB_DIR/server/direct_mttl_lab.py" "$BACKUP/daemon.previous.py"
+[[ ! -f "$DROPIN_DIR/direct-users.conf" ]] || cp -a "$DROPIN_DIR/direct-users.conf" "$BACKUP/direct-users.previous.conf"
 rollback(){
   trap - ERR
   echo 'Extension update failed; restoring previous application/config' >&2
@@ -49,13 +51,21 @@ rollback(){
     rm -f "$OVERRIDE"
   fi
   cd "$SERVER_DIR"
+  install -m 0755 "$BACKUP/daemon.previous.py" "$LAB_DIR/server/direct_mttl_lab.py"
+  if [[ -f "$BACKUP/direct-users.previous.conf" ]]; then
+    install -m 0644 "$BACKUP/direct-users.previous.conf" "$DROPIN_DIR/direct-users.conf"
+  else
+    rm -f "$DROPIN_DIR/direct-users.conf"
+  fi
+  systemctl daemon-reload
+  systemctl restart nexvary-direct-mttl-lab || true
   docker compose up -d --build --no-deps api || true
   echo "Backup: $BACKUP" >&2
   exit 1
 }
 trap rollback ERR
 # Keep the deployed Dockerfile, requirements, SQLite location and legacy routes.
-for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py; do
+for module in direct_mttl.py legacy_direct.py legacy_direct_ui.py legacy_direct_users.py legacy_direct_users_ui.py; do
   install -m 0644 "$SOURCE/app/$module" "$SERVER_DIR/app/$module"
 done
 python3 - "$SERVER_DIR/app/main.py" "$SERVER_DIR/.env" "$LAB_ENV" "$MAC" <<'PY'
@@ -92,6 +102,14 @@ services:
 EOF
 python3 -m compileall -q "$SERVER_DIR/app/main.py" "$SERVER_DIR/app/direct_mttl.py" "$SERVER_DIR/app/legacy_direct.py" "$SERVER_DIR/app/legacy_direct_ui.py" "$SOURCE/direct_mttl_lab.py"
 install -m 0755 "$SOURCE/direct_mttl_lab.py" "$LAB_DIR/server/direct_mttl_lab.py"
+mkdir -p "$DROPIN_DIR"
+cat > "$DROPIN_DIR/direct-users.conf" <<'EOF'
+[Service]
+StateDirectory=nexvary-direct-mttl
+StateDirectoryMode=0700
+Environment=NEXVARY_MTTL_ALLOWED_MACS_FILE=/var/lib/nexvary-direct-mttl/allowed-macs.json
+EOF
+systemctl daemon-reload
 systemctl restart nexvary-direct-mttl-lab
 docker compose config --quiet
 docker compose up -d --build --no-deps api

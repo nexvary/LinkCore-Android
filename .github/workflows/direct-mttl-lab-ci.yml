@@ -5,20 +5,24 @@ on:
     branches:
       - private/direct-mttl-lab
     paths:
-      - 'server/direct_mttl_lab.py'
-      - 'server/tests/test_direct_mttl_lab.py'
+      - 'server/**'
       - '.github/workflows/direct-mttl-lab-ci.yml'
   workflow_dispatch:
 
 jobs:
   parser-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install -r server/requirements.txt
       - name: Compile lab listener
         run: python3 -m py_compile server/direct_mttl_lab.py
-      - name: Run parser tests
+      - name: Run parser, session, permissions and deployment tests
         env:
           PYTHONPATH: server
-        run: python3 -m unittest -v server/tests/test_direct_mttl_lab.py
+        run: python -m pytest -q server/tests

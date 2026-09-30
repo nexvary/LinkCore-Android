@@ -123,6 +123,30 @@ class DirectSessionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await asyncio.wait_for(reader.readline(), 1), b'')
         self.assertFalse(self.lab.devices)
 
+    async def test_multiple_registered_macs_and_persistent_allowlist(self):
+        other = 'AABBCCDDEEFF'
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / 'allowed.json')
+            self.lab.allowlist_file = path
+            self.assertFalse((await self.lab.admin_command('allow invalid'))['ok'])
+            self.assertTrue((await self.lab.admin_command('allow ' + other))['ok'])
+            await self.connect()
+            reader, writer = await asyncio.open_connection('127.0.0.1', self.port)
+            self.writers.append(writer)
+            writer.write(BOOT.replace(MAC, other).encode())
+            await writer.drain()
+            self.assertEqual(await reader.readline(), b'up:getinfo:all\r\n')
+            self.assertEqual(set(self.lab.devices), {MAC, other})
+            self.lab.command_timeout = 1
+            task = asyncio.create_task(self.lab.admin_command(f'on {other} 4'))
+            self.assertEqual(await reader.readline(), b'up:onoff:4:on\r\n')
+            writer.write(b'up:onoff:4:on\r\n')
+            await writer.drain()
+            self.assertEqual((await task)['status'], 'confirmed')
+            with patch.dict('os.environ', {'NEXVARY_MTTL_ALLOWED_MACS_FILE': path}):
+                restarted = DirectMttlLab('127.0.0.1', 0, MAC, 'lgutap', 5, '127.0.0.1', 0, True)
+                self.assertEqual(restarted.allowed_macs, {MAC, other})
+
     def test_public_admin_and_unlisted_control_rejected(self):
         with self.assertRaises(ValueError):
             DirectMttlLab('', 0, MAC, '', 5, '0.0.0.0', 0, True)

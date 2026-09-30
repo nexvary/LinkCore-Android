@@ -89,13 +89,14 @@ def test_legacy_extension_preserves_runtime_and_installs_once(tmp_path):
     (installed / 'app/main.py').write_text(installed_main)
     (installed / 'app/database.py').write_text('# Original SQLite configuration\n')
     source = Path(env['FIXTURE_SOURCE']) / 'server'
-    for module in ('direct_mttl.py', 'legacy_direct.py', 'legacy_direct_ui.py'):
+    for module in ('direct_mttl.py', 'legacy_direct.py', 'legacy_direct_ui.py', 'legacy_direct_users.py', 'legacy_direct_users_ui.py'):
         (source / 'app' / module).write_text('# New extension module\n')
     (source / 'direct_mttl_lab.py').write_text('# New daemon\n')
     lab = tmp_path / 'lab/server'
     lab.mkdir(parents=True)
     (lab / 'direct_mttl_lab.py').write_text('# Previous daemon\n')
     env['NEXVARY_MTTL_INSTALL_DIR'] = str(lab.parent)
+    env['NEXVARY_MTTL_SYSTEMD_DROPIN_DIR'] = str(tmp_path / 'systemd')
     installer = SCRIPT.parent / 'install-legacy-direct-extension.sh'
     original_dockerfile = (installed / 'Dockerfile').read_bytes()
     original_requirements = (installed / 'requirements.txt').read_bytes()
@@ -121,3 +122,70 @@ def test_replacement_updater_rejects_legacy_runtime(tmp_path):
     assert result.returncode != 0
     assert 'install-legacy-direct-extension.sh' in result.stderr
     assert not list(installed.glob('direct-backup-*'))
+
+
+def test_customer_update_preserves_flat_runtime_and_rolls_back(tmp_path):
+    import sqlite3
+    installed, env = prepare(tmp_path)
+    original_main = '# FG_DIRECT_EXTENSION_V1\n# Original API and database remain intact\n'
+    (installed / 'app/main.py').write_text(original_main)
+    (installed / 'app/database.py').write_text('# Existing database configuration\n')
+    source = Path(env['FIXTURE_SOURCE']) / 'server'
+    modules = ('direct_mttl.py', 'legacy_direct.py', 'legacy_direct_ui.py', 'legacy_direct_users.py', 'legacy_direct_users_ui.py')
+    for module in modules:
+        (source / 'app' / module).write_text('# Valid new module\n')
+    (source / 'direct_mttl_lab.py').write_text('# Valid new daemon\n')
+    lab = tmp_path / 'lab/server'
+    lab.mkdir(parents=True)
+    (lab / 'direct_mttl_lab.py').write_text('# Previous daemon\n')
+    database = tmp_path / 'original.sqlite'
+    with sqlite3.connect(database) as db:
+        db.execute('CREATE TABLE existing_accounts (id INTEGER PRIMARY KEY, name TEXT)')
+        db.execute("INSERT INTO existing_accounts(name) VALUES ('existing-customer')")
+    commands = tmp_path / 'bin'
+    curl = commands / 'curl'
+    curl.write_text('''#!/bin/bash
+while [[ $# -gt 0 ]]; do
+ case "$1" in
+  -o) output="$2"; shift 2;;
+  https://*) url="$1"; shift;;
+  *) shift;;
+ esac
+done
+name="${url##*/}"
+if [[ "$url" == */app/* ]]; then cp "$FIXTURE_SOURCE/server/app/$name" "$output"; else cp "$FIXTURE_SOURCE/server/$name" "$output"; fi
+''')
+    curl.chmod(0o755)
+    docker = commands / 'docker'
+    docker.write_text('''#!/bin/bash
+printf "%s\\n" "$*" >> "$FIXTURE_DOCKER_LOG"
+if [[ "$*" == "compose exec -T api python -" ]]; then cat >/dev/null; fi
+if [[ "$*" == compose\ cp\ * ]]; then cp "$FIXTURE_DATABASE" "${@: -1}"; fi
+if [[ "$*" == "compose up -d --build --no-deps api" && -n "${FIXTURE_FAIL_FLAG:-}" && ! -f "$FIXTURE_FAIL_FLAG" ]]; then touch "$FIXTURE_FAIL_FLAG"; exit 2; fi
+''')
+    docker.chmod(0o755)
+    env.update(NEXVARY_MTTL_INSTALL_DIR=str(lab.parent),
+               NEXVARY_MTTL_SYSTEMD_DROPIN_DIR=str(tmp_path / 'systemd'),
+               FG_DIRECT_SOURCE_COMMIT='1' * 40, FIXTURE_DATABASE=str(database))
+    preserved = {name: (installed / name).read_bytes() for name in
+                 ('app/main.py', 'app/database.py', '.env', 'Dockerfile', 'requirements.txt', 'docker-compose.yml', 'Caddyfile')}
+    installer = SCRIPT.parent / 'update-direct-users.sh'
+    result = subprocess.run(['bash', str(installer)], env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    for name, content in preserved.items():
+        assert (installed / name).read_bytes() == content
+    assert 'StateDirectory=nexvary-direct-mttl' in (tmp_path / 'systemd/direct-users.conf').read_text()
+    assert (lab / 'direct_mttl_lab.py').read_text() == '# Valid new daemon\n'
+    (source / 'app/legacy_direct_users.py').write_text('# Replacement that will roll back\n')
+    env['FIXTURE_FAIL_FLAG'] = str(tmp_path / 'failed-once')
+    previous = (installed / 'app/legacy_direct_users.py').read_bytes()
+    result = subprocess.run(['bash', str(installer)], env=env, capture_output=True, text=True)
+    assert result.returncode != 0 and 'previous code restored' in result.stderr
+    assert (installed / 'app/legacy_direct_users.py').read_bytes() == previous
+    for name, content in preserved.items():
+        assert (installed / name).read_bytes() == content
+    with sqlite3.connect(database) as db:
+        assert db.execute('SELECT name FROM existing_accounts').fetchall() == [('existing-customer',)]
+    backups = list(installed.glob('direct-users-backup-*'))
+    assert len(backups) == 2
+    assert all((path / 'database.sqlite').exists() for path in backups)

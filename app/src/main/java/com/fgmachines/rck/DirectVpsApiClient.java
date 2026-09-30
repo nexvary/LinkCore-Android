@@ -22,6 +22,7 @@ public final class DirectVpsApiClient implements AutoCloseable {
     private final String origin;
     interface ConnectionFactory { HttpsURLConnection open(String url) throws IOException; }
     private final ConnectionFactory connections;
+    private String apiPrefix = "/panel/api/direct";
     private volatile String authorization;
     private volatile HttpsURLConnection active;
 
@@ -59,11 +60,41 @@ public final class DirectVpsApiClient implements AutoCloseable {
     }
 
     public List<Device> devices() throws IOException, JSONException {
-        return parseDevices(request("GET", "/panel/api/direct/devices"));
+        return parseDevices(request("GET", apiPrefix + "/devices"));
+    }
+
+    /** Subscriber login never sends owner Basic credentials to the public API. */
+    public static DirectVpsApiClient subscriber(String server) {
+        return subscriber(server, url -> (HttpsURLConnection) URI.create(url).toURL().openConnection());
+    }
+
+    static DirectVpsApiClient subscriber(String server, ConnectionFactory factory) {
+        DirectVpsApiClient api = new DirectVpsApiClient(server, "unused", "unused", factory);
+        api.authorization = "";
+        api.apiPrefix = "/api/v1/direct";
+        return api;
+    }
+
+    public void loginSubscriber(String username, String password) throws IOException, JSONException {
+        JSONObject credentials = new JSONObject();
+        credentials.put("username", username);
+        credentials.put("password", password);
+        JSONObject response = request("POST", apiPrefix + "/auth/login", credentials);
+        String token = response.optString("access_token");
+        if (!"direct-vps".equals(response.optString("source")) || !token.matches("fgd_[A-Za-z0-9_-]{43}")) {
+            throw new IOException("protocol");
+        }
+        authorization = "Bearer " + token;
+    }
+
+    public void logoutSubscriber() throws IOException, JSONException {
+        if (apiPrefix.equals("/api/v1/direct") && authorization != null && !authorization.isEmpty()) {
+            try { request("POST", apiPrefix + "/auth/logout"); } finally { close(); }
+        }
     }
 
     public String setOutlet(String mac, int outlet, boolean on) throws IOException, JSONException {
-        JSONObject result = request("POST", commandPath(mac, outlet, on));
+        JSONObject result = request("POST", commandPath(mac, outlet, on).replace("/panel/api/direct", apiPrefix));
         if (!"direct-vps".equals(result.optString("source"))) throw new IOException("protocol");
         String status = result.optString("status");
         if (!status.equals("confirmed") && !status.equals("failed") && !status.equals("timeout")) {
@@ -81,6 +112,10 @@ public final class DirectVpsApiClient implements AutoCloseable {
     }
 
     private JSONObject request(String method, String path) throws IOException, JSONException {
+        return request(method, path, null);
+    }
+
+    private JSONObject request(String method, String path, JSONObject body) throws IOException, JSONException {
         String auth = authorization;
         if (auth == null) throw new IOException("closed");
         HttpsURLConnection connection = connections.open(origin + path);
@@ -90,14 +125,16 @@ public final class DirectVpsApiClient implements AutoCloseable {
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(method.equals("POST") ? 20000 : 7000);
             connection.setRequestMethod(method);
-            connection.setRequestProperty("Authorization", auth);
+            if (!auth.isEmpty()) connection.setRequestProperty("Authorization", auth);
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("Cache-Control", "no-store");
             connection.setUseCaches(false);
             if (method.equals("POST")) {
+                byte[] payload = body == null ? new byte[0] : body.toString().getBytes(StandardCharsets.UTF_8);
                 connection.setDoOutput(true);
-                connection.setFixedLengthStreamingMode(0);
-                connection.getOutputStream().close();
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setFixedLengthStreamingMode(payload.length);
+                try (java.io.OutputStream output = connection.getOutputStream()) { output.write(payload); }
             }
             int code = connection.getResponseCode();
             if (code != 200) throw new ApiException(code);
@@ -153,6 +190,7 @@ public final class DirectVpsApiClient implements AutoCloseable {
         }
         public boolean canControl(int channel) {
             if (!online() || !data.optBoolean("control_enabled") || state(channel).equals("unknown")) return false;
+            if (data.optBoolean("device_busy")) return false;
             JSONArray inFlight = data.optJSONArray("pending_outlets");
             if (inFlight != null && inFlight.length() > 0) return false; // Service allows one command per device.
             JSONArray allowed = data.optJSONArray("allowed_outlets");

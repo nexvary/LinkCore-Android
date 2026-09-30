@@ -72,6 +72,44 @@ public class DirectVpsApiClientTest {
         assertThrows(IllegalArgumentException.class, () -> new DirectVpsApiClient("https://example.org", "owner:other", "secret"));
         assertThrows(IllegalArgumentException.class, () -> new DirectVpsApiClient("https://example.org", "owner", ""));
     }
+    @Test public void subscriberLoginAndCommandsNeverUseOwnerBasicCredentials() throws Exception {
+        String token = "fgd_" + "x".repeat(43);
+        java.util.List<FakeConnection> sent = new java.util.ArrayList<>();
+        java.util.List<String> paths = new java.util.ArrayList<>();
+        DirectVpsApiClient api = DirectVpsApiClient.subscriber("https://example.org", url -> {
+            paths.add(url);
+            String body = url.endsWith("/auth/login")
+                    ? "{\"source\":\"direct-vps\",\"access_token\":\"" + token + "\"}"
+                    : url.endsWith("/devices") ? "{\"source\":\"direct-vps\",\"devices\":[]}"
+                    : url.endsWith("/auth/logout") ? "{\"ok\":true}"
+                    : "{\"source\":\"direct-vps\",\"status\":\"confirmed\"}";
+            FakeConnection connection;
+            try { connection = new FakeConnection(200, body); } catch (Exception e) { throw new IOException(e); }
+            sent.add(connection);
+            return connection;
+        });
+        api.loginSubscriber("alice", "customer-test-password");
+        assertNull(sent.get(0).getRequestProperty("Authorization"));
+        JSONObject payload = new JSONObject(sent.get(0).output.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("alice", payload.getString("username"));
+        assertEquals("customer-test-password", payload.getString("password"));
+        assertTrue(api.devices().isEmpty());
+        assertEquals("Bearer " + token, sent.get(1).getRequestProperty("Authorization"));
+        assertEquals("confirmed", api.setOutlet("2CE032C7A520", 1, true));
+        assertEquals("https://example.org/api/v1/direct/devices/2CE032C7A520/outlets/1?state=on", paths.get(2));
+        api.logoutSubscriber();
+        assertEquals("https://example.org/api/v1/direct/auth/logout", paths.get(3));
+        assertThrows(IOException.class, api::devices);
+        assertEquals(4, sent.size());
+    }
+    @Test public void deviceBusyDisablesVisibleOutletsAndViewOnlyDeniesControl() throws Exception {
+        DirectVpsApiClient.Device d = device("", "[{\"channel\":1,\"relay\":\"off\"}]");
+        assertTrue(d.canControl(1));
+        d.data.put("device_busy", true);
+        assertFalse(d.canControl(1));
+        d.data.put("device_busy", false).put("allowed_outlets", new org.json.JSONArray());
+        assertFalse(d.canControl(1));
+    }
     @Test public void httpsCommandUsesOwnerAuthAndFreshConfirmation() throws Exception {
         FakeConnection connection = new FakeConnection(200,
                 "{\"source\":\"direct-vps\",\"status\":\"confirmed\",\"ok\":true}");

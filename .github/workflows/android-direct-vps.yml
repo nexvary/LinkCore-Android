@@ -18,7 +18,7 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Test, lint and build isolated Direct VPS APK
-        run: gradle --no-daemon testDirectVpsLabUnitTest lintDirectVpsLab assembleDirectVpsLab
+        run: gradle --no-daemon --max-workers=2 testDirectVpsLabUnitTest lintDirectVpsLab assembleDirectVpsLab
       - uses: actions/upload-artifact@v4
         with:
           name: FG-Link-Direct-VPS-experimental

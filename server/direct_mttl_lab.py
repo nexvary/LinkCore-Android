@@ -30,6 +30,7 @@ import re
 import signal
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, Optional
 
 BOOT_RE = re.compile(
@@ -84,13 +85,25 @@ class DirectMttlLab:
         self.host = host
         self.port = port
         self.allowed_mac = normalize_mac(allowed_mac)
+        self.allowed_macs = {normalize_mac(v) for v in allowed_mac.split(',') if v.strip()}
+        if any(not re.fullmatch(r'[0-9A-F]{12}', v) for v in self.allowed_macs):
+            raise ValueError('invalid MAC allow-list')
+        self.allowlist_file = os.getenv('NEXVARY_MTTL_ALLOWED_MACS_FILE', '')
+        if self.allowlist_file and Path(self.allowlist_file).exists():
+            saved = json.loads(Path(self.allowlist_file).read_text())
+            if not isinstance(saved, list) or len(saved) > 256 or any(
+                    not isinstance(v, str) or not re.fullmatch(r'[0-9A-F]{12}', v) for v in saved):
+                raise ValueError('invalid persisted MAC allow-list')
+            self.allowed_macs.update(saved)
+        if len(self.allowed_macs) > 256:
+            raise ValueError('MAC allow-list capacity exceeded')
         self.expected_model = expected_model.strip().lower()
         self.poll_seconds = max(5, poll_seconds)
         if admin_host != "127.0.0.1":
             raise ValueError("admin interface must remain loopback-only")
         self.admin_host = admin_host
         self.admin_port = admin_port
-        if allow_control and not re.fullmatch(r"[0-9A-F]{12}", self.allowed_mac):
+        if allow_control and not self.allowed_macs:
             raise ValueError("control requires an explicit MAC allow-list")
         self.allow_control = allow_control
         self.command_timeout = 8.0
@@ -194,7 +207,7 @@ class DirectMttlLab:
                         raise ValueError("boot MAC/clientId mismatch")
                     if self.expected_model and model.lower() != self.expected_model:
                         raise ValueError(f"unexpected model {model!r}")
-                    if self.allowed_mac and mac != self.allowed_mac:
+                    if self.allowed_macs and mac not in self.allowed_macs:
                         logging.warning("rejected_mac peer=%s mac=%s", peer, mac)
                         break
 
@@ -308,6 +321,7 @@ class DirectMttlLab:
             return {
                 "ok": True,
                 "observe_only": not self.allow_control,
+                "allowed_macs": sorted(self.allowed_macs),
                 "devices": [
                     {
                         "mac": d.mac,
@@ -323,6 +337,23 @@ class DirectMttlLab:
                     for d in self.devices.values()
                 ],
             }
+
+        if parts[0] == 'allow' and len(parts) == 2:
+            mac = parts[1].upper()
+            if not re.fullmatch(r'[0-9A-F]{12}', mac):
+                return {'ok': False, 'error': 'invalid MAC'}
+            if not self.allowlist_file:
+                return {'ok': False, 'error': 'persistent allow-list is not configured'}
+            proposed = self.allowed_macs | {mac}
+            if len(proposed) > 256:
+                return {'ok': False, 'error': 'allow-list capacity exceeded'}
+            path = Path(self.allowlist_file)
+            temporary = path.with_suffix('.tmp')
+            temporary.write_text(json.dumps(sorted(proposed)))
+            temporary.chmod(0o600)
+            temporary.replace(path)
+            self.allowed_macs = proposed
+            return {'ok': True, 'mac': mac}
 
         if parts[0] == "refresh" and len(parts) == 2:
             mac = normalize_mac(parts[1])
@@ -345,7 +376,7 @@ class DirectMttlLab:
             device = self.devices.get(mac)
             if not device:
                 return {"ok": False, "error": "device offline"}
-            if self.allowed_mac != mac:
+            if mac not in self.allowed_macs:
                 return {"ok": False, "status": "failed", "error": "MAC not allow-listed"}
             if device.pending or time.monotonic() - device.last_command < 1:
                 return {"ok": False, "status": "failed", "error": "command rate limited or busy"}

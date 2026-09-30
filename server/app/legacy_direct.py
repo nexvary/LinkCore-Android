@@ -1,4 +1,4 @@
-"""Owner-only Direct VPS extension for the deployed FG Link Server 0.5 API.
+"""Direct VPS extension for the deployed FG Link Server 0.5 API.
 
 Install against its existing engine, session factory and panel guard. No legacy
 account/strip schema, controller route or deployment image is replaced.
@@ -20,6 +20,7 @@ from fastapi.routing import request_response
 
 from .direct_mttl import adapter, direct_macs
 from .legacy_direct_ui import WIDGET
+from .legacy_direct_users_ui import USERS_WIDGET
 
 
 class DirectBase(DeclarativeBase):
@@ -70,7 +71,8 @@ def inject_widget(response):
     body = response.body.decode(response.charset)
     if 'id="fg-direct-vps"' in body:
         return response
-    body = body.replace('</body>', WIDGET + '</body>') if '</body>' in body else body + WIDGET
+    widget = WIDGET + USERS_WIDGET
+    body = body.replace('</body>', widget + '</body>') if '</body>' in body else body + widget
     response.body = body.encode(response.charset)
     response.headers['content-length'] = str(len(response.body))
     response.headers['cache-control'] = 'no-store'
@@ -90,8 +92,6 @@ def install(app, engine, session_factory, panel_guard, legacy_log):
 
     def registered(db, mac):
         normalized = mac.upper()
-        if normalized not in direct_macs():
-            raise HTTPException(404, 'Direct device not registered')
         registration = db.get(DirectRegistration, normalized)
         if registration is None:
             raise HTTPException(404, 'Direct device not registered')
@@ -110,49 +110,51 @@ def install(app, engine, session_factory, panel_guard, legacy_log):
     def devices():
         with session_factory() as db:
             rows = list(db.scalars(select(DirectRegistration)))
+            snapshot = adapter.status_many([row.mac for row in rows])
             result = []
             for row in rows:
-                if row.mac not in direct_macs():
-                    continue
-                live = adapter.status(row.mac)
+                live = snapshot[row.mac]
                 result.append({**live, 'mac': row.mac, 'transport': 'direct-vps', 'tcp_port': 10086,
                                'allowed_outlets': [n for n in range(1, 5) if row.outlet_mask & (1 << (n - 1))]})
             return {'devices': result, 'source': 'direct-vps'}
 
     @app.post('/panel/api/direct/devices/{mac}/outlets/{outlet}', dependencies=[Depends(panel_guard)])
     def control(mac: str, outlet: int, request: Request, state: str):
-        if state not in ('on', 'off') or outlet not in (1, 2, 3, 4):
-            raise HTTPException(422, 'Expected outlet 1..4 and state on/off')
         with session_factory() as db:
             row = registered(db, mac)
-            if not row.outlet_mask & (1 << (outlet - 1)):
-                raise HTTPException(403, 'Outlet policy denies control')
-            live = adapter.status(row.mac)
-            if not live.get('control_enabled'):
-                raise HTTPException(409, 'Direct control disabled')
-            if not live.get('connected'):
-                raise HTTPException(409, 'Direct device offline')
-            command = DirectCommand(id=str(uuid.uuid4()), mac=row.mac, actor=actor_for(request),
-                                    outlet=outlet, state=state, status='queued', created_at=now())
-            db.add(command)
-            audit(db, command, 'queued')
-            db.commit()
-            command.status = 'sent'
-            db.commit()
-            try:
-                result = adapter.control(row.mac, outlet, state)
-                command.status = result.get('status', 'failed')
-                if command.status not in ('confirmed', 'timeout', 'failed'):
-                    command.status = 'failed'
-                command.detail = result.get('error', 'fresh device confirmation')[:512]
-            except (OSError, ValueError):
-                command.status = 'timeout'
-                command.detail = 'IPC unavailable; physical outcome unknown'
-            command.completed_at = now()
-            audit(db, command, command.status)
-            db.commit()
-            return {'ok': command.status == 'confirmed', 'command_id': command.id,
-                    'status': command.status, 'detail': command.detail, 'source': 'direct-vps'}
+            return execute(db, row, outlet, state, actor_for(request), row.outlet_mask)
+
+    def execute(db, row, outlet, state, actor, control_mask):
+        if state not in ('on', 'off') or outlet not in (1, 2, 3, 4):
+            raise HTTPException(422, 'Expected outlet 1..4 and state on/off')
+        if not (row.outlet_mask & control_mask) & (1 << (outlet - 1)):
+            raise HTTPException(403, 'Outlet policy denies control')
+        live = adapter.status(row.mac)
+        if not live.get('control_enabled'):
+            raise HTTPException(409, 'Direct control disabled')
+        if not live.get('connected'):
+            raise HTTPException(409, 'Direct device offline')
+        command = DirectCommand(id=str(uuid.uuid4()), mac=row.mac, actor=actor,
+                                outlet=outlet, state=state, status='queued', created_at=now())
+        db.add(command)
+        audit(db, command, 'queued')
+        db.commit()
+        command.status = 'sent'
+        db.commit()
+        try:
+            result = adapter.control(row.mac, outlet, state)
+            command.status = result.get('status', 'failed')
+            if command.status not in ('confirmed', 'timeout', 'failed'):
+                command.status = 'failed'
+            command.detail = result.get('error', 'fresh device confirmation')[:512]
+        except (OSError, ValueError):
+            command.status = 'timeout'
+            command.detail = 'IPC unavailable; physical outcome unknown'
+        command.completed_at = now()
+        audit(db, command, command.status)
+        db.commit()
+        return {'ok': command.status == 'confirmed', 'command_id': command.id,
+                'status': command.status, 'detail': command.detail, 'source': 'direct-vps'}
 
     @app.get('/panel/api/direct/commands/{command_id}', dependencies=[Depends(panel_guard)])
     def command_status(command_id: str):
@@ -171,6 +173,9 @@ def install(app, engine, session_factory, panel_guard, legacy_log):
             return {'command_id': command.id, 'mac': command.mac, 'outlet': command.outlet,
                     'state': command.state, 'user': command.actor, 'status': command.status,
                     'detail': command.detail, 'source': 'direct-vps'}
+
+    from .legacy_direct_users import install_users
+    install_users(app, session_factory, panel_guard, legacy_log, registered, execute)
 
     for route in app.routes:
         if getattr(route, 'path', None) != '/panel' or not hasattr(route, 'dependant'):

@@ -56,6 +56,9 @@ User=nexvary-mttl
 Group=fgrck-mttl-ipc
 RuntimeDirectory=nexvary-direct-mttl
 RuntimeDirectoryMode=0755
+StateDirectory=nexvary-direct-mttl
+StateDirectoryMode=0700
+Environment=NEXVARY_MTTL_ALLOWED_MACS_FILE=/var/lib/nexvary-direct-mttl/allowed-macs.json
 Environment=NEXVARY_MTTL_ADMIN_SOCKET=/run/nexvary-direct-mttl/admin.sock
 EnvironmentFile=$ENV_FILE
 ExecStart=/usr/bin/python3 $APP_DIR/server/direct_mttl_lab.py --host 0.0.0.0 --port 10086

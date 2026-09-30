@@ -14,6 +14,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
 import androidx.appcompat.app.AppCompatActivity;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ public final class DirectVpsActivity extends AppCompatActivity {
     private TextView message;
     private EditText server, username, password;
     private Button connect;
+    private Spinner loginType;
     private List<DirectVpsApiClient.Device> devices = new ArrayList<>();
     private boolean resumed, fetching, pending, fresh;
     private int generation;
@@ -45,13 +48,20 @@ public final class DirectVpsActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         page = DirectVpsViews.page(this);
         page.addView(DirectVpsViews.text(this, getString(R.string.direct_title), 24));
-        page.addView(DirectVpsViews.text(this, getString(R.string.direct_owner_help), 15));
+        page.addView(DirectVpsViews.text(this, getString(R.string.direct_users_help), 15));
         page.addView(DirectVpsViews.button(this, getString(R.string.direct_switch_mode), v -> {
             startActivity(new Intent(this, ConnectionModeActivity.class));
             finish();
         }));
         login = new LinearLayout(this);
         login.setOrientation(LinearLayout.VERTICAL);
+        loginType = new Spinner(this);
+        ArrayAdapter<String> roles = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
+                new String[]{getString(R.string.direct_customer_login), getString(R.string.direct_owner_login)});
+        roles.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        loginType.setAdapter(roles);
+        loginType.setSelection(getPreferences(MODE_PRIVATE).getInt("login_type", 0));
+        login.addView(loginType);
         server = input(R.string.direct_server, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         server.setText(getPreferences(MODE_PRIVATE).getString("server", DirectVpsApiClient.DEFAULT_SERVER));
         username = input(R.string.direct_username, InputType.TYPE_CLASS_TEXT);
@@ -100,25 +110,54 @@ public final class DirectVpsActivity extends AppCompatActivity {
 
     private void signIn() {
         if (client != null || fetching) return;
+        boolean subscriber = loginType.getSelectedItemPosition() == 0;
+        String loginUsername = username.getText().toString().trim();
+        String loginPassword = password.getText().toString();
+        if (loginUsername.length() < (subscriber ? 3 : 1) || loginPassword.isEmpty()) {
+            message.setText(R.string.direct_login_input_error);
+            return;
+        }
         try {
-            client = new DirectVpsApiClient(server.getText().toString(),
-                    username.getText().toString(), password.getText().toString());
+            client = subscriber ? DirectVpsApiClient.subscriber(server.getText().toString())
+                    : new DirectVpsApiClient(server.getText().toString(), loginUsername, loginPassword);
         } catch (IllegalArgumentException e) {
             message.setText(R.string.direct_login_input_error);
             return;
         }
         getPreferences(MODE_PRIVATE).edit().putString("server", server.getText().toString().trim())
-                .putString("username", username.getText().toString().trim()).apply();
+                .putString("username", loginUsername).putInt("login_type", loginType.getSelectedItemPosition()).apply();
         password.setText("");
         connect.setEnabled(false);
         message.setText(R.string.direct_loading);
-        refresh(true);
+        if (!subscriber) { refresh(true); return; }
+        fetching = true;
+        int session = generation;
+        DirectVpsApiClient api = client;
+        worker.execute(() -> {
+            try {
+                api.loginSubscriber(loginUsername, loginPassword);
+                main.post(() -> {
+                    if (session != generation || isFinishing()) { api.close(); return; }
+                    fetching = false;
+                    refresh(true);
+                });
+            } catch (Exception e) {
+                main.post(() -> {
+                    if (session != generation || isFinishing()) return;
+                    signOut();
+                    message.setText(errorText(e));
+                });
+            }
+        });
     }
 
     private void signOut() {
         generation++;
         main.removeCallbacks(poll);
-        if (client != null) client.close();
+        if (client != null) {
+            DirectVpsApiClient previous = client;
+            worker.execute(() -> { try { previous.logoutSubscriber(); } catch (Exception ignored) {} finally { previous.close(); } });
+        }
         client = null;
         fetching = pending = fresh = false;
         devices.clear();
@@ -229,7 +268,17 @@ public final class DirectVpsActivity extends AppCompatActivity {
                     + "\n" + value(data, "peer"), 14));
             card.addView(DirectVpsViews.text(this, getString(R.string.direct_times,
                     time(data.optDouble("connected_at", 0)), time(data.optDouble("last_seen", 0))), 13));
+            org.json.JSONArray allowed = data.optJSONArray("allowed_outlets");
+            if (allowed != null && allowed.length() == 0) {
+                card.addView(DirectVpsViews.text(this, getString(R.string.direct_view_only), 15));
+            }
             for (int n = 1; n <= 4; n++) {
+                org.json.JSONArray visible = data.optJSONArray("visible_outlets");
+                if (visible != null) {
+                    boolean permitted = false;
+                    for (int i = 0; i < visible.length(); i++) if (visible.optInt(i) == n) permitted = true;
+                    if (!permitted) continue;
+                }
                 final int channel = n;
                 boolean busy = device.pending(n) || (pending && device.mac.equals(pendingMac) && n == pendingOutlet);
                 boolean online = fresh && device.online();
@@ -271,7 +320,8 @@ public final class DirectVpsActivity extends AppCompatActivity {
             int code = ((DirectVpsApiClient.ApiException) e).status;
             if (code == 401) return R.string.direct_auth_error;
             if (code == 403) return R.string.direct_denied;
-            if (code == 409 || code == 429) return R.string.direct_unavailable;
+            if (code == 409) return R.string.direct_unavailable;
+            if (code == 429) return R.string.direct_rate_limited;
             if (code == 404) return R.string.direct_extension_missing;
         }
         return R.string.direct_network_error;
