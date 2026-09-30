@@ -52,6 +52,18 @@ class DirectSessionTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await task)['status'], 'confirmed')
             self.assertEqual(self.lab.devices[MAC].outlets[1]['relay'], 'on')
 
+    async def test_live_nul_telemetry_confirms_command(self):
+        reader, writer = await self.connect()
+        self.lab.command_timeout = 1
+        command = asyncio.create_task(self.lab.admin_command(f'on {MAC} 1'))
+        self.assertEqual(await reader.readline(), b'up:onoff:1:on\r\n')
+        frame = (Path(__file__).parent / 'fixtures/mttl_w01_live_getinfo.txt').read_bytes().strip()
+        writer.write(b'\x00' + frame + b'\r\n\x00\n')
+        await writer.drain()
+        self.assertEqual((await command)['status'], 'confirmed')
+        self.assertEqual(self.lab.devices[MAC].outlets[1]['energy_wh'], 1)
+        self.assertEqual(self.lab.devices[MAC].outlets[4]['temperature_c'], 26)
+
     async def test_unix_socket_adapter(self):
         await self.connect()
         with tempfile.TemporaryDirectory() as directory:

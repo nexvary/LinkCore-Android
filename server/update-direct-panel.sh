@@ -18,6 +18,10 @@ else
   echo 'Existing server .env/docker-compose.yml not found; set FGRCK_INSTALL_DIR.' >&2
   exit 1
 fi
+if [[ "$FLAT" == 1 ]] && grep -q 'from .database import' "$SERVER_DIR/app/main.py" && grep -q 'FG_LINK_PANEL_TOKEN' "$SERVER_DIR/app/main.py"; then
+  echo 'Detected deployed FG Link Server 0.5. Use install-legacy-direct-extension.sh; this updater will not replace that API.' >&2
+  exit 1
+fi
 cd "$SERVER_DIR"
 # No credentials or expanded Compose configuration are printed.
 docker compose config --services | grep -qx api || { echo 'Expected existing api service; stopped.' >&2; exit 1; }
@@ -38,7 +42,7 @@ if [[ "$FLAT" == 1 ]]; then
   SOURCE_SERVER="$STAGING/repo/server"
   # Overlay application code only. Retain site, Compose project, secrets and DB volumes.
   cp -a "$SOURCE_SERVER/app/." "$SERVER_DIR/app/"
-  cp "$SOURCE_SERVER/requirements.txt" "$SOURCE_SERVER/Dockerfile" "$SERVER_DIR/"
+  cp "$SOURCE_SERVER/requirements.txt" "$SERVER_DIR/"
 else
   [[ $(git -C "$CLOUD_DIR" remote get-url origin) == https://github.com/nexvary/LinkCore-Android.git ]] || { echo 'Expected NEXVARY origin; stopped.' >&2; exit 1; }
   [[ -z $(git -C "$CLOUD_DIR" status --porcelain --untracked-files=no) ]] || { echo 'Tracked local edits found; stopped.' >&2; exit 1; }

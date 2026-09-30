@@ -58,3 +58,17 @@ def test_optional_measurements_not_invented():
     assert parsed[0]['relay'] == 'on'
     assert parsed[0]['power_w'] is None
     assert parsed[0]['temperature_c'] is None
+
+
+def test_live_journal_frame_and_nul_envelope():
+    from pathlib import Path
+    from direct_mttl_lab import normalize_wire_frame
+    frame = (Path(__file__).parent / 'fixtures/mttl_w01_live_getinfo.txt').read_text().strip()
+    expected = parse_getinfo(frame)
+    assert len(expected) == 4
+    assert expected[0]['energy_wh'] == 1
+    assert [outlet['temperature_c'] for outlet in expected] == [25, 25, 24, 26]
+    for envelope in ('\x00', '\x00\r\n', ' \r\n\x00'):
+        assert parse_getinfo(envelope + frame + '\r\n\x00') == expected
+    assert normalize_wire_frame('\x00\r\n') == ''
+    assert normalize_wire_frame('up:bootinfo:bad\x00identity') == 'up:bootinfo:bad\x00identity'

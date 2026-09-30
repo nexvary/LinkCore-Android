@@ -45,6 +45,16 @@ def normalize_mac(value: str) -> str:
     return re.sub(r"[^0-9A-Fa-f]", "", value or "").upper()
 
 
+def normalize_wire_frame(value: str) -> str:
+    """Discard only line/NUL delimiters at frame boundaries.
+
+    NUL is not removed by str.strip(), and journald splits logs at NUL,
+    which otherwise makes a prefixed getinfo look valid in journal output.
+    Keep interior bytes intact rather than repairing malformed identities.
+    """
+    return value.strip("\x00 \t\r\n")
+
+
 @dataclass
 class Device:
     model: str
@@ -158,7 +168,10 @@ class DirectMttlLab:
                     break
                 if len(raw) > MAX_FRAME:
                     raise ValueError("frame too large")
-                line = raw.decode("utf-8", errors="strict").strip()
+                decoded = raw.decode("utf-8", errors="strict")
+                line = normalize_wire_frame(decoded)
+                if line and line != decoded.strip():
+                    logging.info("wire_envelope peer=%s raw=%r", peer, decoded[:2048])
                 if not line:
                     continue
 
@@ -213,7 +226,7 @@ class DirectMttlLab:
                     continue
 
                 if not identified_mac:
-                    logging.info("pre_identity_frame peer=%s frame=%s", peer, frame[:256])
+                    logging.info("pre_identity_frame peer=%s frame=%r", peer, frame[:256])
                     continue
 
                 device = self.devices.get(identified_mac)
@@ -243,7 +256,7 @@ class DirectMttlLab:
                     )
                     continue
 
-                logging.info("protocol_frame mac=%s frame=%s", identified_mac, frame[:2048])
+                logging.info("protocol_frame mac=%s frame=%r", identified_mac, frame[:2048])
         except (UnicodeDecodeError, ValueError, ConnectionError, asyncio.IncompleteReadError, asyncio.TimeoutError) as exc:
             logging.warning("device_connection_error peer=%s error=%s", peer, exc)
         finally:
@@ -364,7 +377,7 @@ def parse_getinfo(frame: str):
     prefix = "up:getinfo:"
     if frame is None:
         return None
-    frame = frame.strip()
+    frame = normalize_wire_frame(frame)
     if not frame.startswith(prefix):
         return None
 

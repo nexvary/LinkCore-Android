@@ -52,3 +52,27 @@ experiment, not device-level Zero Trust. HTTPS/JWT protects the panel side.
 
 Validation: `PYTHONPATH=server python -m pytest server/tests -q`.
 After deployment, inspect the DIRECT VPS badge and physically verify ON/OFF.
+
+## Deployed FG Link Server 0.5 compatibility
+
+The physical VPS has a separate, flat `FG Link Server 0.5.0` installation using
+`app/database.py`, SQLite, `FG_LINK_*` settings and Caddy's existing Basic Auth plus
+`X-FG-Panel-Token`. Replacing it with the repository's Cloud 0.3 image is incompatible.
+`update-direct-panel.sh` now stops before modifying such installations.
+
+Use `install-legacy-direct-extension.sh` for that installation. It keeps its Dockerfile,
+requirements, database configuration, account models, client polling routes and existing
+panel. It copies three extension modules and appends one guarded install hook. The existing
+panel response gets a Direct VPS card, and `/panel/api/direct/*` endpoints reuse `_panel_guard`.
+This is owner-only; client bearer tokens and View access do not grant direct controls.
+Direct MAC registration is explicit via `FGRCK_DIRECT_MTTL_MACS`, with a persisted outlet
+mask and command table in the existing engine. Additional tables do not migrate existing
+account or strip tables. Command audit entries use the original `_log` / ActivityLog.
+
+The installer backs up the app/config, checks original health + IPC + registered Direct
+API + injected panel, and rebuilds the previous app if any update/health step fails.
+The service parser now accepts boundary NUL delimiters and logs unparsed frames via repr;
+NUL is a likely explanation for journald splitting `frame=` and its frame across messages.
+`tests/fixtures/mttl_w01_live_getinfo.txt` is the exact complete journal frame supplied
+by the owner. Tests cover its measurements and NUL-enveloped TCP confirmation. Runtime
+logs after deployment establish whether the physical frames actually include NUL.

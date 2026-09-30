@@ -81,3 +81,43 @@ def test_custom_override_stops_before_changes(tmp_path):
     assert 'custom Compose override' in result.stderr
     assert (installed / 'app/main.py').read_text() == 'old application'
     assert 'FGRCK_DIRECT_MTTL_MACS' not in (installed / '.env').read_text()
+
+
+def test_legacy_extension_preserves_runtime_and_installs_once(tmp_path):
+    installed, env = prepare(tmp_path)
+    installed_main = 'from .database import Base, SessionLocal, engine\nFG_LINK_PANEL_TOKEN = "fixture"\ndef get_db(): pass\ndef _panel_guard(): pass\ndef _log(): pass\napp = None\n'
+    (installed / 'app/main.py').write_text(installed_main)
+    (installed / 'app/database.py').write_text('# Original SQLite configuration\n')
+    source = Path(env['FIXTURE_SOURCE']) / 'server'
+    for module in ('direct_mttl.py', 'legacy_direct.py', 'legacy_direct_ui.py'):
+        (source / 'app' / module).write_text('# New extension module\n')
+    (source / 'direct_mttl_lab.py').write_text('# New daemon\n')
+    lab = tmp_path / 'lab/server'
+    lab.mkdir(parents=True)
+    (lab / 'direct_mttl_lab.py').write_text('# Previous daemon\n')
+    env['NEXVARY_MTTL_INSTALL_DIR'] = str(lab.parent)
+    installer = SCRIPT.parent / 'install-legacy-direct-extension.sh'
+    original_dockerfile = (installed / 'Dockerfile').read_bytes()
+    original_requirements = (installed / 'requirements.txt').read_bytes()
+    original_compose = (installed / 'docker-compose.yml').read_bytes()
+    for _ in range(2):
+        result = subprocess.run(['bash', str(installer)], env=env, capture_output=True, text=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+    assert (installed / 'Dockerfile').read_bytes() == original_dockerfile
+    assert (installed / 'requirements.txt').read_bytes() == original_requirements
+    assert (installed / 'docker-compose.yml').read_bytes() == original_compose
+    assert (installed / 'app/database.py').read_text() == '# Original SQLite configuration\n'
+    new_main = (installed / 'app/main.py').read_text()
+    assert new_main.startswith(installed_main)
+    assert new_main.count('# FG_DIRECT_EXTENSION_V1') == 1
+    assert 'FGRCK_JWT_SECRET=fixture-secret' in (installed / '.env').read_text()
+    assert len(list(installed.glob('direct-extension-backup-*'))) == 2
+
+
+def test_replacement_updater_rejects_legacy_runtime(tmp_path):
+    installed, env = prepare(tmp_path)
+    (installed / 'app/main.py').write_text('from .database import Base\nFG_LINK_PANEL_TOKEN = "fixture"\n')
+    result = subprocess.run(['bash', str(SCRIPT)], env=env, capture_output=True, text=True)
+    assert result.returncode != 0
+    assert 'install-legacy-direct-extension.sh' in result.stderr
+    assert not list(installed.glob('direct-backup-*'))
