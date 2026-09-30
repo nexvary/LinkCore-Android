@@ -18,6 +18,12 @@ import re,sys
 assert re.fullmatch(r'(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?',sys.argv[1]) and '.' in sys.argv[1], 'Invalid domain'
 assert re.fullmatch(r'[a-zA-Z0-9._+%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',sys.argv[2]), 'Invalid administrator email'
 PY
+PUBLIC_IP="${FGRCK_DIRECT_PUBLIC_IP:-}"
+[[ -n "$PUBLIC_IP" ]] || read -r -p 'Public IPv4 for device Controller: ' PUBLIC_IP
+python3 - "$PUBLIC_IP" <<'IPCHECK'
+import ipaddress,sys
+ipaddress.IPv4Address(sys.argv[1])
+IPCHECK
 # Do not take over ports or replace another running web server.
 if ss -ltnH | awk '{print $4}' | grep -Eq ':(80|443|10086)$'; then
  echo 'Port 80, 443 or 10086 is already in use. Installation stopped.' >&2; exit 1
@@ -41,6 +47,7 @@ cat > "$TARGET/server/.env" <<EOF
 FGRCK_DOMAIN=$DOMAIN
 FGRCK_ACME_EMAIL=$ADMIN
 FGRCK_ADMIN_EMAIL=$ADMIN
+FGRCK_DIRECT_PUBLIC_IP=$PUBLIC_IP
 FGRCK_DIRECT_MTTL_GID=$GID
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 FGRCK_JWT_SECRET=$(openssl rand -hex 32)

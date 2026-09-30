@@ -10,6 +10,7 @@ def independent(tmp_path, monkeypatch):
     monkeypatch.setenv('FGRCK_ENV', 'test')
     monkeypatch.setenv('FGRCK_DATABASE_URL', 'sqlite:///' + str(tmp_path/'panel.sqlite'))
     monkeypatch.setenv('FGRCK_ADMIN_EMAIL', 'owner@example.com')
+    monkeypatch.setenv('FGRCK_DIRECT_PUBLIC_IP', '203.0.113.10')
     monkeypatch.setenv('FGRCK_JWT_SECRET', 'independent-fixture-secret-'+'x'*40)
     monkeypatch.setenv('FGRCK_DIRECT_EMAIL_WORKER_ENABLED', 'false')
     from app import main
@@ -50,6 +51,8 @@ def test_approved_layout_and_personal_account_flow(independent,monkeypatch):
     page=client.get('/panel').text
     for text in ('fg-direct-vps','fg-direct-users','fg-panel-header','fg-panel-audit','standalone-auth','DOMContentLoaded','fgpanel_token'):
         assert text in page
+    assert '104.207.95.47' not in page and 'https://link.fgmachines.org' not in page
+    assert '203.0.113.10' in page and 'location.origin' in page
     created=client.post('/panel/api/direct/users',headers=owner,json={'username':'customer','password':'PersonalPassword123'})
     assert created.status_code == 200
     uid=created.json()['id']

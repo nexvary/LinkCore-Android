@@ -1,5 +1,6 @@
 """Independent panel deployment: existing LAN API plus personal Direct accounts."""
 import json
+import ipaddress
 import os
 from contextlib import asynccontextmanager
 from fastapi import Depends, HTTPException, Request
@@ -29,6 +30,11 @@ legacy_direct.WIDGET = legacy_direct.WIDGET.replace(
 legacy_direct.USERS_WIDGET = legacy_direct.USERS_WIDGET.replace(
     "headers:body?{'Content-Type':'application/json'}:{}",
     "headers:{Authorization:'Bearer '+(sessionStorage.getItem('fgpanel_token')||''),...(body?{'Content-Type':'application/json'}:{})}")
+public_ip = os.getenv('FGRCK_DIRECT_PUBLIC_IP', '').strip()
+if public_ip:
+    public_ip = str(ipaddress.IPv4Address(public_ip))
+legacy_direct.USERS_WIDGET = legacy_direct.USERS_WIDGET.replace('104.207.95.47', public_ip or '[Server IPv4]')
+legacy_direct.USERS_WIDGET = legacy_direct.USERS_WIDGET.replace('https://link.fgmachines.org', "'+location.origin+'")
 legacy_direct.install(app, main.engine, main.SessionLocal, owner_guard, legacy_log)
 original_lifespan = app.router.lifespan_context
 
@@ -57,6 +63,7 @@ body:not(.standalone-ready)>*:not(#standalone-auth):not(script):not(style){displ
 #standalone-auth{max-width:460px;margin:8vh auto;padding:28px;background:#07100b;color:#79ff9d;border:1px solid #93aa9b;border-radius:18px;font:18px/1.8 Arial}
 #standalone-auth input,#standalone-auth button{box-sizing:border-box;width:100%;padding:13px;margin:8px 0;background:#020705;color:#79ff9d;border:1px solid #93aa9b;border-radius:9px;font:inherit}
 #standalone-tools{display:flex;gap:12px;margin-top:12px}
+#standalone-tools button{background:#0b1811;color:#79ff9d;border:1px solid #93aa9b;border-radius:9px;padding:10px 16px;font:inherit;cursor:pointer}
 </style><script>
 function standaloneBoot(){
  const auth=document.createElement('section');auth.id='standalone-auth';auth.dir='rtl';

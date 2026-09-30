@@ -21,6 +21,7 @@ const fs=require('fs');
  await page.locator('#fgdu-create-button').click();
  const created=await createdResponse;if(!created.ok())throw Error('Create user: '+await created.text());
  await page.waitForFunction(()=>document.querySelector('#fgdu-user').textContent.includes('previewuser'));
+ if(!(await page.locator('#fgdu-secret').textContent()).includes('https://127.0.0.1:8080'))throw Error('Incorrect independent server URL');
  await page.screenshot({path:'panel-preview/users-ar.png'});
  await page.locator('#standalone-tools button').first().click();
  await page.waitForFunction(()=>document.documentElement.dir==='ltr');
