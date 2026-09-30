@@ -106,6 +106,32 @@ body.fg-panel{margin:0!important;background:var(--fg-bg)!important;color:var(--f
 #fg-panel-main table{width:100%;border-collapse:collapse;font-size:14px}#fg-panel-main th,#fg-panel-main td{padding:12px 10px;text-align:start;border-bottom:1px solid #34475b;overflow-wrap:anywhere}#fg-panel-main th{color:#d7e9f9;background:#192b3e}
 #fg-panel-audit{overflow:auto;max-height:calc(100vh - 185px)}#fg-panel-audit th{position:sticky;top:0;z-index:1}
 #fg-panel-legacy{overflow-x:auto}#fg-panel-main [role=status]{padding:10px 0;overflow-wrap:anywhere}
+/* Black / neon identity, including legacy hover rules and inherited labels. */
+body.fg-panel{--fg-bg:#020403;--fg-card:#080d0b;--fg-text:#79ff9d;--fg-muted:#63df87;--fg-line:#70857a;--fg-blue:#82ffa5;font-size:17px!important}
+#fg-panel-header{background:#030805f5}#fg-panel-header h1,#fg-panel-header p,#fg-panel-main h2,#fg-panel-main h3,#fg-panel-main p,#fg-panel-main small,#fg-panel-main label,#fg-panel-main strong,#fg-panel-main summary{color:var(--fg-text)!important}
+#fg-panel-main h2,#fg-panel-header h1{text-shadow:0 0 16px #41ff7730}#fg-panel-main h3{font-size:19px}
+#fg-panel-main>section{box-shadow:0 12px 32px #0008,inset 0 1px 0 #c0e0cc12}
+#fg-panel-nav button,#fg-direct-users button{background:#0b1811;color:#79ff9d;border-color:#768e80;transition:background .16s,border-color .16s,box-shadow .16s,transform .16s}
+#fg-panel-nav button[aria-pressed=true]{background:#102d1b;color:#8affad;border-color:#79ff9d;box-shadow:0 0 14px #42ff6c22}
+#fg-panel-main input:not([type=checkbox]),#fg-panel-main select,#fg-panel-main textarea{background:#020705;color:#79ff9d;border-color:#758d7f;font-size:17px;min-height:48px;caret-color:#79ff9d}
+#fg-panel-main input::placeholder,#fg-panel-main textarea::placeholder{color:#58b772;opacity:1}#fg-panel-main option{color:#79ff9d;background:#06100a}
+#fg-direct-users{display:grid;grid-template-columns:1fr 1fr;gap:16px}#fg-direct-users>h2,#fg-direct-users>p,#fg-direct-users>.fgdu-block:nth-of-type(3){grid-column:1/-1}
+#fg-direct-users .fgdu-block{margin:0;padding:20px;background:#050a07;border:1px solid #73887c;border-radius:14px;box-shadow:inset 0 1px 0 #dcffe918;min-width:0}
+#fg-direct-users .fgdu-selection select,#fgdu-user{min-width:min(100%,260px)}
+#fg-direct-users #fgdu-outlets{gap:16px!important}#fgdu-outlets>div{padding:18px;background:linear-gradient(145deg,#0c1c12,#040906);border:1px solid #7b9586;border-radius:12px;box-shadow:0 5px 15px #0005}
+#fgdu-outlets strong{font-size:19px;margin-bottom:8px}#fgdu-outlets label{display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;width:auto!important;margin:0!important;padding:6px 0!important;gap:12px!important;text-align:start!important;cursor:pointer;font-size:17px}
+#fgdu-outlets input[type=checkbox],#fg-direct-users .fgdu-device-list input[type=checkbox]{width:22px!important;height:22px!important;min-height:22px!important;margin:0!important;float:none!important;flex:0 0 22px;accent-color:#54ff83;cursor:pointer}
+#fg-direct-users .fgdu-device-list label{display:flex!important;justify-content:flex-start!important;gap:12px!important;background:#06100a;border:1px solid #718b7a;font-size:16px;min-height:54px;cursor:pointer}
+#fgdu-assigned span{color:#79ff9d;background:#0c2414;border-color:#6fa180}
+#fg-direct-users #fgdu-revoke,#fg-direct-users #fgdu-disable{background:#22080f;border-color:#a45c71;color:#79ff9d}#fg-direct-users #fgdu-reset{background:#231c07;border-color:#a9904d;color:#79ff9d}
+#fg-direct-vps .fgdv-card{background:#030805;border-color:#82998b;border-radius:14px}#fg-direct-vps .fgdv-outlet{background:linear-gradient(145deg,#0c1911,#040906);padding:20px;border-radius:12px;box-shadow:0 5px 15px #0005}
+#fg-direct-vps button.fgdv-toggle-on{background:#083c20;color:#8affaf;border-color:#52ff88}#fg-direct-vps button.fgdv-toggle-off{background:#520b26;color:#ff9fbd;border-color:#f34c81}#fg-direct-vps button.fgdv-toggle-pending{background:#483200;color:#ffe6a1}#fg-direct-vps button.fgdv-toggle-offline{background:#1b211d;color:#bac9c0}
+#fg-panel-main button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}#fg-panel-main table th{background:#0b1b11;color:#79ff9d}#fg-panel-main table td{color:#79ff9d;border-color:#334a3b}
+#fg-panel-legacy section,#fg-panel-legacy .card,#fg-panel-audit section,#fg-panel-audit .card{background:#030805!important;color:#79ff9d!important;border-color:#758d7f!important}
+@media(hover:hover){#fg-panel-nav button:hover,#fg-panel-main button:not(:disabled):hover{background:#183c24;color:#a0ffbb;border-color:#88ffaa;box-shadow:0 0 18px #47ff7738;transform:translateY(-2px)}#fg-direct-vps button.fgdv-toggle-off:not(:disabled):hover{background:#751135;color:#ffd0df;border-color:#ff7aa4}#fg-direct-vps button.fgdv-toggle-on:not(:disabled):hover{background:#105832;color:#b3ffc9}#fg-direct-users .fgdu-block:hover,#fg-direct-vps .fgdv-outlet:hover,#fgdu-outlets>div:hover{border-color:#99c9ab;box-shadow:0 0 20px #52ff7d14}#fg-direct-users .fgdu-device-list label:hover{background:#112c1a;border-color:#79ff9d}}
+#fg-panel-main button:not(:disabled):active,#fg-panel-nav button:active{transform:translateY(0);box-shadow:inset 0 2px 8px #0008}#fg-direct-users .fgdu-block:focus-within{border-color:#79ff9d}#fgdu-outlets>div:has(input:checked){border-color:#86b898}
+@media(max-width:850px){#fg-direct-users{grid-template-columns:1fr}#fg-direct-users>.fgdu-block{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){#fg-panel-nav button,#fg-panel-main button{transition:none!important;transform:none!important}}
 @media(max-width:850px){#fg-direct-vps .fgdv-outlets,#fg-direct-users #fgdu-outlets{grid-template-columns:repeat(2,minmax(0,1fr))}#fg-panel-header{position:relative}#fg-panel-main>section{padding:16px!important}}
 @media(max-width:480px){#fg-panel-header{padding:14px 12px}#fg-panel-main{padding:14px 10px}#fg-panel-nav{display:grid;grid-template-columns:1fr 1fr}#fg-panel-nav button{padding:10px 8px;font-size:14px}#fg-direct-vps .fgdv-outlets,#fg-direct-users #fgdu-outlets{grid-template-columns:1fr}#fg-panel-main h2{font-size:20px}#fg-panel-audit{max-height:none}}
 </style>
