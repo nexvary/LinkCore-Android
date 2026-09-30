@@ -51,3 +51,10 @@ class DirectMttlLabParserTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_optional_measurements_not_invented():
+    parsed = parse_getinfo('up:getinfo:1:0;on;3;on;on;bad;bad')
+    assert parsed[0]['relay'] == 'on'
+    assert parsed[0]['power_w'] is None
+    assert parsed[0]['temperature_c'] is None

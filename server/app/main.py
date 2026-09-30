@@ -41,6 +41,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from .panel import router as panel_router
+from .direct_mttl import adapter as direct_adapter, direct_macs
 
 
 APP_NAME = "FG Machines Link Cloud"
@@ -386,13 +387,18 @@ def deliver_alert_email(recipient: str, subject: str, body: str) -> None:
 
 
 def device_payload(device: Device, role: str, allowed_outlets: list[int] | None = None) -> dict:
+    direct = device.mac in direct_macs()
+    live = direct_adapter.status(device.mac) if direct else {}
     return {
+        **live,
+        "transport": "direct-vps" if direct else "android-lan",
+        "tcp_port": 10086 if direct else None,
         "mac": device.mac,
-        "name": "",
-        "room": "",
-        "firmware": device.firmware,
-        "connected": is_device_online(device),
-        "last_seen": int(device.last_seen.timestamp() * 1000) if device.last_seen else 0,
+        "name": device.name,
+        "room": device.room,
+        "firmware": live.get("firmware", device.firmware),
+        "connected": live.get("connected", False) if direct else is_device_online(device),
+        "last_seen": int(live.get("last_seen", 0) * 1000) if direct else (int(device.last_seen.timestamp() * 1000) if device.last_seen else 0),
         "role": role,
         "allowed_outlets": allowed_outlets if allowed_outlets is not None
         else ([1, 2, 3, 4] if role == "owner" else []),
@@ -893,6 +899,49 @@ def list_devices(
     }
 
 
+@app.post(f"{API_PREFIX}/devices/{{mac}}/direct-outlets/{{outlet}}")
+def direct_set_outlet(mac: str, outlet: int, state: Literal["on", "off"],
+                      user: User = Depends(current_user), db: Session = Depends(get_db)):
+    device = device_by_mac(db, mac)
+    require_device_role(db, user, device, "control")
+    if outlet not in allowed_outlets_for(db, user, device):
+        raise HTTPException(403, "Outlet policy denies control")
+    if device.mac not in direct_macs():
+        raise HTTPException(409, "Device is not configured for Direct VPS")
+    live = direct_adapter.status(device.mac)
+    if not live.get("control_enabled"):
+        raise HTTPException(409, "Direct control disabled")
+    if not live.get("connected"):
+        raise HTTPException(409, "Direct device offline")
+    command = Command(controller_id=device.controller_id, device_id=device.id,
+                      requested_by_user_id=user.id, outlet=outlet, state=state,
+                      source="direct-vps", status="queued",
+                      expires_at=utcnow() + timedelta(seconds=15))
+    db.add(command)
+    audit(db, "direct_command_queued", user.id, device.id,
+          f"source=direct-vps mac={device.mac} outlet={outlet} state={state} result=queued")
+    db.commit()
+    command.status = "sent"
+    command.delivered_at = utcnow()
+    command.attempts = 1
+    db.commit()
+    try:
+        result = direct_adapter.control(device.mac, outlet, state)
+        command.status = result.get("status", "failed")
+        if command.status not in {"confirmed", "failed", "timeout"}:
+            command.status = "failed"
+        command.ack_detail = result.get("error", "fresh device confirmation")[:512]
+    except (OSError, ValueError):
+        command.status = "timeout"
+        command.ack_detail = "IPC unavailable; physical outcome unknown"
+    command.acked_at = utcnow()
+    audit(db, "direct_command_" + command.status, user.id, device.id,
+          f"source=direct-vps mac={device.mac} outlet={outlet} state={state} result={command.status}")
+    db.commit()
+    return {"ok": command.status == "confirmed", "command_id": command.id,
+            "status": command.status, "source": "direct-vps", "detail": command.ack_detail}
+
+
 @app.post(f"{API_PREFIX}/devices/{{mac}}/outlets/{{outlet}}")
 def compatible_set_outlet(
     mac: str,
@@ -1274,6 +1323,7 @@ def poll_commands(
         select(Command)
         .where(
             Command.controller_id == controller.id,
+            Command.source != "direct-vps",
             Command.expires_at > now,
             Command.attempts < MAX_COMMAND_ATTEMPTS,
             or_(
@@ -1335,6 +1385,8 @@ def ack_command(
     command = db.get(Command, command_id)
     if command is None or command.controller_id != controller.id:
         raise HTTPException(status_code=404, detail="Command not found")
+    if command.source == "direct-vps":
+        raise HTTPException(status_code=409, detail="Direct commands require device session confirmation")
     if command.status in {"acked", "failed", "expired"}:
         return {"ok": True, "status": command.status}
     command.status = body.status
@@ -1360,6 +1412,15 @@ def command_status(
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     require_device_role(db, user, device, "view")
+    expiry = command.expires_at
+    if expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+    if command.source == "direct-vps" and command.status in {"queued", "sent"} and expiry < utcnow():
+        command.status = "timeout"
+        command.ack_detail = "request interrupted; physical outcome unknown"
+        audit(db, "direct_command_timeout", command.requested_by_user_id, device.id,
+              f"source=direct-vps mac={device.mac} outlet={command.outlet} state={command.state} result=timeout")
+        db.commit()
     return {
         "command_id": command.id,
         "mac": device.mac,

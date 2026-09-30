@@ -17,6 +17,7 @@ PANEL_HTML = r"""<!doctype html>
       --accent:#4aa3df;--accent2:#2f7faf;--green:#4fc98a;--red:#df6671;--amber:#d6a354;
       --shadow:0 16px 40px rgba(0,0,0,.28);--radius:12px;
     }
+    .badge.pending{color:var(--amber)} .badge.offstate{color:var(--red)} button:disabled{opacity:.4;cursor:default}
     *{box-sizing:border-box}
     html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Tahoma,Arial,sans-serif}
     body{background:linear-gradient(180deg,#0a0f14 0,#0b1117 48%,#091016 100%)}
@@ -222,24 +223,24 @@ PANEL_HTML = r"""<!doctype html>
 <script>
 const T={
  ar:{
-  dir:"rtl",langBtn:"English",logout:"خروج",consoleTitle:"Operations Console",consoleSub:"إدارة أجهزة FG Link والمشتركين وصلاحيات المخارج",
+  pending:"قيد التنفيذ",protection:"الحماية",connectedAt:"وقت الاتصال",lastSeen:"آخر ظهور",dir:"rtl",langBtn:"English",logout:"خروج",consoleTitle:"Operations Console",consoleSub:"إدارة أجهزة FG Link والمشتركين وصلاحيات المخارج",
   navOverview:"نظرة عامة",navDevices:"الأجهزة",navInfra:"البنية التحتية",authTitle:"تسجيل الدخول",authText:"جلسة إدارية مشفرة عبر FG Link Cloud",
-  email:"البريد الإلكتروني",password:"كلمة المرور",login:"دخول",register:"إنشاء حساب",overviewTitle:"الحالة التشغيلية",overviewSub:"الخادم وسيط نقل فقط؛ أوامر الكهرباء تتطلب توقيع الهاتف المرتبط.",
+  email:"البريد الإلكتروني",password:"كلمة المرور",login:"دخول",register:"إنشاء حساب",overviewTitle:"الحالة التشغيلية",overviewSub:"وضع Android يتطلب توقيع الهاتف؛ وضع Direct VPS التجريبي يتحكم عبر جلسة TCP مباشرة.",
   liveBadge:"النظام يعمل",kpiServer:"الخادم",kpiDevices:"الأجهزة المسجلة",kpiOnline:"متصل الآن",kpiVersion:"إصدار المنصة",
-  serverSub:"بوابة HTTPS متاحة",deviceSub:"أجهزة MTTL",onlineSub:"Heartbeat ضمن النطاق",devicesTitle:"تشغيل الأجهزة",devicesHint:"التحكم متاح فقط للمخارج المخصصة لهذا الحساب.",
-  refresh:"تحديث البيانات",thDevice:"الجهاز",thStatus:"الحالة",thRole:"الصلاحية",thPorts:"المخارج",thControl:"Zero Trust",thManage:"الإدارة",
+  serverSub:"بوابة HTTPS متاحة",deviceSub:"أجهزة MTTL",onlineSub:"جلسة Direct TCP أو Heartbeat Android",devicesTitle:"تشغيل الأجهزة",devicesHint:"التحكم متاح فقط للمخارج المخصصة لهذا الحساب.",
+  refresh:"تحديث البيانات",thDevice:"الجهاز",thStatus:"الحالة",thRole:"الصلاحية",thPorts:"المخارج",thControl:"التحكم",thManage:"الإدارة",
   noDevices:"لا توجد أجهزة مسجلة.",connected:"متصل",offline:"غير متصل",owner:"مالك",control:"تحكم",admin:"مدير",view:"مشاهدة",
   manage:"المشتركون",infraTitle:"تجهيز البنية التحتية",infraSub:"إنشاء Controller وربط أجهزة MTTL بالخادم.",controllerName:"اسم Controller",
   createController:"إنشاء Controller",deviceName:"اسم الجهاز",room:"الغرفة / الموقع",registerDevice:"تسجيل الجهاز",shareTitle:"إدارة صلاحيات المشتركين",
   inviteRole:"صلاحية الدعوة",inviteHours:"مدة الدعوة بالساعات",createInvite:"إنشاء كود مشاركة",save:"حفظ المخارج",outlet:"مخرج",on:"ON",off:"OFF"
  },
  en:{
-  dir:"ltr",langBtn:"العربية",logout:"Sign out",consoleTitle:"Operations Console",consoleSub:"FG Link device, subscriber and outlet authorization management",
+  pending:"Pending",protection:"Protection",connectedAt:"Connected",lastSeen:"Last seen",dir:"ltr",langBtn:"العربية",logout:"Sign out",consoleTitle:"Operations Console",consoleSub:"FG Link device, subscriber and outlet authorization management",
   navOverview:"Overview",navDevices:"Devices",navInfra:"Infrastructure",authTitle:"Sign in",authText:"Administrative session through FG Link Cloud",
-  email:"Email",password:"Password",login:"Sign in",register:"Create account",overviewTitle:"Operational Status",overviewSub:"The VPS is relay-only; electrical commands require the bound phone signature.",
+  email:"Email",password:"Password",login:"Sign in",register:"Create account",overviewTitle:"Operational Status",overviewSub:"Android commands require the bound phone signature; experimental Direct VPS uses the live TCP session.",
   liveBadge:"SYSTEM OPERATIONAL",kpiServer:"Cloud API",kpiDevices:"Registered Devices",kpiOnline:"Online Now",kpiVersion:"Platform Version",
-  serverSub:"HTTPS gateway available",deviceSub:"MTTL nodes",onlineSub:"Heartbeat within threshold",devicesTitle:"Device Operations",devicesHint:"Controls appear only for outlets assigned to this account.",
-  refresh:"Refresh Data",thDevice:"Device",thStatus:"Status",thRole:"Role",thPorts:"Outlets",thControl:"Zero Trust",thManage:"Management",
+  serverSub:"HTTPS gateway available",deviceSub:"MTTL nodes",onlineSub:"Direct TCP session or Android heartbeat",devicesTitle:"Device Operations",devicesHint:"Controls appear only for outlets assigned to this account.",
+  refresh:"Refresh Data",thDevice:"Device",thStatus:"Status",thRole:"Role",thPorts:"Outlets",thControl:"Control",thManage:"Management",
   noDevices:"No devices registered.",connected:"Online",offline:"Offline",owner:"Owner",control:"Control",admin:"Admin",view:"View",
   manage:"Subscribers",infraTitle:"Infrastructure Provisioning",infraSub:"Create a controller and attach MTTL devices to the server.",controllerName:"Controller Name",
   createController:"Create Controller",deviceName:"Device Name",room:"Room / Location",registerDevice:"Register Device",shareTitle:"Subscriber Access Control",
@@ -294,9 +295,16 @@ function renderDevices(){
  body.innerHTML=devices.map(d=>{
   const allowed=new Set(d.allowed_outlets||[]);
   const ports=[1,2,3,4].map(n=>'<span class="port '+(allowed.has(n)?"allowed":"denied")+'">'+n+'</span>').join("");
-  const controls='<span class="badge role">ANDROID KEY SIGNATURE</span>';
+  const direct=d.transport==="direct-vps";
+  const telemetry=(d.outlets||[]).map(o=>'<span class="subline">'+tr("outlet")+' '+o.channel+' · '+esc(o.relay)+' · '+esc(o.power_w??"—")+' W · '+esc(o.energy_wh??"—")+' Wh · '+esc(o.temperature_c??"—")+' °C · '+esc(o.event_code??"")+'</span>').join("");
+  const controls=direct?[1,2,3,4].map(n=>{
+    const o=(d.outlets||[]).find(x=>x.channel===n)||{};
+    const pending=(d.pending_outlets||[]).includes(n)||pendingCommands.has(d.mac+":"+n);
+    const disabled=!d.connected||!d.control_enabled||!allowed.has(n)||pending;
+    return '<div><span class="badge '+(!d.connected?'offline':pending?'pending':o.relay==='on'?'online':'offstate')+'">'+tr("outlet")+' '+n+' · '+(!d.connected?tr("offline"):pending?tr('pending'):esc(o.relay||'—'))+'</span> '+['on','off'].map(state=>'<button class="btn small" '+(disabled?'disabled':'')+' onclick="setOutlet(\''+d.mac+'\','+n+',\''+state+'\')">'+state.toUpperCase()+'</button>').join(' ')+'</div>';
+  }).join("")+telemetry:'<span class="badge role">ANDROID KEY SIGNATURE</span>';
   const canAdmin=d.role==="owner"||d.role==="admin";
-  return '<tr><td><span class="deviceName">'+esc(d.name||"MTTL-W01")+'</span><span class="subline">'+esc(d.room||"—")+'</span><span class="mono">'+esc(d.mac)+'</span></td>'+
+  return '<tr><td><span class="deviceName">'+esc(d.name||"MTTL-W01")+'</span><span class="subline">'+esc(d.room||"—")+'</span><span class="mono">'+esc(d.mac)+'</span><span class="badge">'+(direct?'DIRECT VPS · TCP 10086':'ANDROID / LAN')+'</span>'+(direct?'<span class="subline">'+esc(d.model||'')+' · '+esc(d.firmware||'')+' · '+esc(d.peer||'')+'</span><span class="subline">Connected: '+esc(d.connected_at?new Date(d.connected_at*1000).toLocaleString():'—')+' · '+tr('lastSeen')+': '+esc(d.last_seen?new Date(d.last_seen).toLocaleString():'—')+'</span>':'')+'</td>'+
     '<td><span class="badge '+(d.connected?"online":"offline")+'">'+(d.connected?tr("connected"):tr("offline"))+'</span></td>'+
     '<td><span class="badge role">'+esc(roleLabel(d.role))+'</span></td>'+
     '<td><div class="outletSet">'+ports+'</div></td>'+
@@ -304,7 +312,13 @@ function renderDevices(){
     '<td>'+(canAdmin?'<button class="btn small" onclick="openShares(\''+d.mac+'\')">'+tr("manage")+'</button>':'—')+'</td></tr>'
  }).join("")
 }
-async function setOutlet(){toast("Zero-trust mode: electrical commands must be signed by the bound Android app.",true)}
+const pendingCommands=new Set();
+async function setOutlet(mac,outlet,state){
+ const key=mac+":"+outlet;if(pendingCommands.has(key))return;
+ pendingCommands.add(key);renderDevices();
+ try{const d=await api("/api/v1/devices/"+mac+"/direct-outlets/"+outlet+"?state="+state,{method:"POST"});toast(d.status+" · "+(d.detail||""),d.status!=="confirmed")}
+ catch(e){toast(e.message,true)}finally{pendingCommands.delete(key);await refreshAll()}
+}
 async function createController(){
  try{const d=await api("/api/v1/controllers",{method:"POST",body:JSON.stringify({name:controllerName.value})});controllerId.value=d.controller_id;sessionStorage.setItem("fgpanel_controller_id",d.controller_id);controllerResult.textContent="Controller ID:\n"+d.controller_id+"\n\nController Key (shown once):\n"+d.controller_key+"\n\n"+d.note;controllerResult.classList.remove("hidden")}catch(e){toast(e.message,true)}
 }
@@ -321,6 +335,7 @@ async function loadShares(){
 async function saveOutlets(uid){const outlets=[...document.querySelectorAll('input[data-user="'+CSS.escape(uid)+'"]:checked')].map(x=>Number(x.value));try{await api("/api/v1/devices/"+activeMac+"/shares/"+uid+"/outlets",{method:"PUT",body:JSON.stringify({outlets})});toast("Saved · "+outlets.join(","));await loadShares();await refreshAll()}catch(e){toast(e.message,true)}}
 async function createInvite(){try{const d=await api("/api/v1/devices/"+activeMac+"/shares/invites",{method:"POST",body:JSON.stringify({role:inviteRole.value,expires_hours:Number(inviteHours.value||72)})});inviteResult.textContent="Share code:\n"+d.code+"\n\nRole: "+d.role+"\nExpires: "+d.expires_at;inviteResult.classList.remove("hidden")}catch(e){toast(e.message,true)}}
 controllerId.value=sessionStorage.getItem("fgpanel_controller_id")||"";
+setInterval(()=>{if(token&&!pendingCommands.size)refreshAll()},5000);
 applyLang();if(token){showDashboard();refreshAll()}else showAuth();
 </script>
 </body>

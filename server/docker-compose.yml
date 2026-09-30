@@ -19,6 +19,8 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      FGRCK_DIRECT_MTTL_MACS: ${FGRCK_DIRECT_MTTL_MACS:-}
+      FGRCK_DIRECT_MTTL_SOCKET: /run/nexvary-direct-mttl/admin.sock
       FGRCK_ENV: production
       FGRCK_DATABASE_URL: postgresql+psycopg://fgrck:${POSTGRES_PASSWORD}@db:5432/fgrck
       FGRCK_JWT_SECRET: ${FGRCK_JWT_SECRET:?set FGRCK_JWT_SECRET}
@@ -40,6 +42,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    group_add:
+      - "${FGRCK_DIRECT_MTTL_GID:-19087}"
+    volumes:
+      - /run/nexvary-direct-mttl:/run/nexvary-direct-mttl:ro
     expose:
       - "8080"
     networks: [backend]

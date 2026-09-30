@@ -475,3 +475,108 @@ def test_zero_trust_rejects_forged_signature_and_replay():
         assert command["proof"]["key_id"] == key_id
         assert command["proof"]["nonce"] == nonce
         assert command["proof"]["signature"]
+
+
+def test_direct_permissions_policy_and_audit(monkeypatch):
+    from app import main
+    mac = '2CE032C7A520'
+    monkeypatch.setenv('FGRCK_DIRECT_MTTL_MACS', mac)
+    monkeypatch.setattr(main.direct_adapter, 'status', lambda mac: {
+        'connected': True, 'control_enabled': True, 'outlets': [], 'last_seen': time.time()})
+    calls = []
+    def control(mac, outlet, state):
+        calls.append((mac, outlet, state))
+        return {'ok': True, 'status': 'confirmed'}
+    monkeypatch.setattr(main.direct_adapter, 'control', control)
+    with TestClient(app) as client:
+        owner = register(client, 'direct-owner@example.com')
+        viewer = register(client, 'direct-viewer@example.com')
+        guest = register(client, 'direct-control@example.com')
+        ctl = client.post('/api/v1/controllers', json={'name': 'Direct registration'},
+                          headers=auth(owner['access_token'])).json()
+        result = client.post('/api/v1/devices', json={'controller_id': ctl['controller_id'], 'mac': mac},
+                             headers=auth(owner['access_token']))
+        assert result.status_code == 201, result.text
+        for account, role in [(viewer, 'view'), (guest, 'control')]:
+            invite = client.post(f'/api/v1/devices/{mac}/shares/invites', json={'role': role},
+                                 headers=auth(owner['access_token'])).json()
+            response = client.post('/api/v1/shares/accept', json={'code': invite['code']},
+                                   headers=auth(account['access_token']))
+            assert response.status_code == 200, response.text
+        shares = client.get(f'/api/v1/devices/{mac}/shares', headers=auth(owner['access_token'])).json()
+        uid = next(s['user_id'] for s in shares['shares'] if s['email'] == 'direct-control@example.com')
+        assert client.put(f'/api/v1/devices/{mac}/shares/{uid}/outlets', json={'outlets': [2]},
+                          headers=auth(owner['access_token'])).status_code == 200
+        path = f'/api/v1/devices/{mac}/direct-outlets/1?state=on'
+        assert client.post(path).status_code == 401
+        assert client.post(path, headers=auth(viewer['access_token'])).status_code == 403
+        assert client.post(path, headers=auth(guest['access_token'])).status_code == 403
+        response = client.post(path, headers=auth(owner['access_token']))
+        assert response.status_code == 200, response.text
+        assert response.json()['status'] == 'confirmed'
+        assert calls == [(mac, 1, 'on')]
+        command_id = response.json()['command_id']
+        assert client.get('/api/v1/commands/' + command_id, headers=auth(owner['access_token'])).json()['source'] == 'direct-vps'
+        monkeypatch.setattr(main.direct_adapter, 'status', lambda mac: {'connected': False, 'control_enabled': True})
+        assert client.post(path, headers=auth(owner['access_token'])).status_code == 409
+        devices = client.get('/api/v1/devices', headers=auth(owner['access_token'])).json()['devices']
+        assert devices[0]['transport'] == 'direct-vps'
+        assert not devices[0]['connected']
+        monkeypatch.setattr(main.direct_adapter, 'status', lambda mac: {'connected': True, 'control_enabled': False})
+        assert client.post(path, headers=auth(owner['access_token'])).status_code == 409
+        with main.SessionLocal() as db:
+            logs = list(db.scalars(main.select(main.AuditLog).where(main.AuditLog.action == 'direct_command_confirmed')))
+            assert any('source=direct-vps' in log.detail and mac in log.detail for log in logs)
+
+
+def test_api_uses_real_loopback_adapter(monkeypatch):
+    import json
+    import socketserver
+    import threading
+    from app import main
+    mac = '2CE032C7A521'
+    calls = []
+    class Handler(socketserver.StreamRequestHandler):
+        def handle(self):
+            command = self.rfile.readline().decode().strip()
+            calls.append(command)
+            if command == 'status':
+                response = {'ok': True, 'observe_only': False, 'devices': [
+                    {'mac': mac, 'online': True, 'last_seen': time.time(), 'outlets': []}]}
+            else:
+                response = {'ok': False, 'status': 'timeout', 'error': 'no fresh device confirmation'}
+            self.wfile.write((json.dumps(response) + '\n').encode())
+    server = socketserver.ThreadingTCPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setenv('FGRCK_DIRECT_MTTL_MACS', mac)
+    monkeypatch.setenv('FGRCK_DIRECT_MTTL_ADMIN_PORT', str(server.server_address[1]))
+    monkeypatch.delenv('FGRCK_DIRECT_MTTL_SOCKET', raising=False)
+    try:
+        with TestClient(app) as client:
+            owner = register(client, 'ipc-owner@example.com')
+            headers = auth(owner['access_token'])
+            ctl = client.post('/api/v1/controllers', json={'name': 'IPC owner'}, headers=headers).json()
+            result = client.post('/api/v1/devices', json={'controller_id': ctl['controller_id'], 'mac': mac}, headers=headers)
+            assert result.status_code == 201, result.text
+            response = client.post(f'/api/v1/devices/{mac}/direct-outlets/2?state=off', headers=headers)
+            assert response.status_code == 200, response.text
+            assert not response.json()['ok']
+            assert response.json()['status'] == 'timeout'
+            assert calls[-1] == f'off {mac} 2'
+            command_id = response.json()['command_id']
+            response = client.post(f"/api/v1/controllers/{ctl['controller_id']}/commands/{command_id}/ack",
+                                   json={'status': 'acked', 'detail': 'old Android'},
+                                   headers={'X-Controller-Key': ctl['controller_key']})
+            assert response.status_code == 409, response.text
+            assert client.get('/api/v1/commands/' + command_id, headers=headers).json()['status'] == 'timeout'
+            with main.SessionLocal() as db:
+                cmd = db.get(main.Command, command_id)
+                cmd.status = 'sent'
+                cmd.expires_at = main.utcnow() - main.timedelta(seconds=1)
+                db.commit()
+            assert client.get('/api/v1/commands/' + command_id, headers=headers).json()['status'] == 'timeout'
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)

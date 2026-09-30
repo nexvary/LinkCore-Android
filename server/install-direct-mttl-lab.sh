@@ -23,6 +23,8 @@ else
   git -C "$APP_DIR" reset --hard "origin/$BRANCH"
 fi
 
+getent group fgrck-mttl-ipc >/dev/null || groupadd --system --gid 19087 fgrck-mttl-ipc
+
 id -u nexvary-mttl >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin nexvary-mttl
 chown -R root:root "$APP_DIR"
 chmod 0755 "$APP_DIR/server/direct_mttl_lab.py"
@@ -51,7 +53,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=nexvary-mttl
-Group=nexvary-mttl
+Group=fgrck-mttl-ipc
+RuntimeDirectory=nexvary-direct-mttl
+RuntimeDirectoryMode=0755
+Environment=NEXVARY_MTTL_ADMIN_SOCKET=/run/nexvary-direct-mttl/admin.sock
 EnvironmentFile=$ENV_FILE
 ExecStart=/usr/bin/python3 $APP_DIR/server/direct_mttl_lab.py --host 0.0.0.0 --port 10086
 Restart=on-failure
@@ -72,7 +77,8 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now nexvary-direct-mttl-lab
+systemctl enable nexvary-direct-mttl-lab
+systemctl restart nexvary-direct-mttl-lab
 
 # TCP 10086 is the controller port used by the strip.
 ufw allow 10086/tcp comment 'NEXVARY direct MTTL lab'

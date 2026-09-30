@@ -29,7 +29,7 @@ import os
 import re
 import signal
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 BOOT_RE = re.compile(
@@ -54,6 +54,9 @@ class Device:
     writer: asyncio.StreamWriter
     connected_at: float
     last_seen: float
+    outlets: dict = field(default_factory=dict)
+    pending: dict = field(default_factory=dict)
+    last_command: float = 0
 
 
 class DirectMttlLab:
@@ -73,12 +76,18 @@ class DirectMttlLab:
         self.allowed_mac = normalize_mac(allowed_mac)
         self.expected_model = expected_model.strip().lower()
         self.poll_seconds = max(5, poll_seconds)
+        if admin_host != "127.0.0.1":
+            raise ValueError("admin interface must remain loopback-only")
         self.admin_host = admin_host
         self.admin_port = admin_port
+        if allow_control and not re.fullmatch(r"[0-9A-F]{12}", self.allowed_mac):
+            raise ValueError("control requires an explicit MAC allow-list")
         self.allow_control = allow_control
+        self.command_timeout = 8.0
         self.devices: Dict[str, Device] = {}
         self._server: Optional[asyncio.AbstractServer] = None
         self._admin_server: Optional[asyncio.AbstractServer] = None
+        self._unix_server: Optional[asyncio.AbstractServer] = None
         self._poll_task: Optional[asyncio.Task] = None
 
     async def start(self) -> None:
@@ -93,6 +102,10 @@ class DirectMttlLab:
             self.admin_host,
             self.admin_port,
         )
+        unix_path = os.getenv("NEXVARY_MTTL_ADMIN_SOCKET", "")
+        if unix_path:
+            self._unix_server = await asyncio.start_unix_server(self.handle_admin, path=unix_path)
+            os.chmod(unix_path, 0o660)
         self._poll_task = asyncio.create_task(self.poll_loop())
         logging.info(
             "listener_ready bind=%s:%s admin=%s:%s observe_only=%s allowed_mac=%s",
@@ -108,9 +121,10 @@ class DirectMttlLab:
         if self._poll_task:
             self._poll_task.cancel()
         for device in list(self.devices.values()):
+            self.fail_pending(device)
             device.writer.close()
         self.devices.clear()
-        for server in (self._admin_server, self._server):
+        for server in (self._admin_server, self._unix_server, self._server):
             if server is not None:
                 server.close()
                 await server.wait_closed()
@@ -126,7 +140,7 @@ class DirectMttlLab:
 
     async def send(self, device: Device, command: str) -> None:
         device.writer.write((command + "\r\n").encode("utf-8"))
-        await device.writer.drain()
+        await asyncio.wait_for(device.writer.drain(), timeout=5)
 
     async def handle_device(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -139,7 +153,7 @@ class DirectMttlLab:
 
         try:
             while True:
-                raw = await reader.readline()
+                raw = await asyncio.wait_for(reader.readline(), timeout=90 if identified_mac else 15)
                 if not raw:
                     break
                 if len(raw) > MAX_FRAME:
@@ -148,6 +162,8 @@ class DirectMttlLab:
                 if not line:
                     continue
 
+                if pending and line.startswith("up:"):
+                    pending = ""
                 frame = pending + line if pending else line
                 if frame.startswith("up:getinfo:") and parse_getinfo(frame) is None:
                     pending = frame
@@ -170,7 +186,10 @@ class DirectMttlLab:
                         break
 
                     old = self.devices.get(mac)
+                    if identified_mac and identified_mac != mac:
+                        raise ValueError("session identity cannot change")
                     if old and old.writer is not writer:
+                        self.fail_pending(old)
                         old.writer.close()
 
                     identified_mac = mac
@@ -198,11 +217,14 @@ class DirectMttlLab:
                     continue
 
                 device = self.devices.get(identified_mac)
-                if device:
-                    device.last_seen = time.time()
+                if not device or device.writer is not writer:
+                    break
+                device.last_seen = time.time()
 
                 telemetry = parse_getinfo(frame)
                 if telemetry is not None:
+                    for item in telemetry:
+                        self.observe(device, item["channel"], item)
                     logging.info(
                         "telemetry mac=%s data=%s",
                         identified_mac,
@@ -212,6 +234,7 @@ class DirectMttlLab:
 
                 state = ONOFF_RE.fullmatch(frame)
                 if state:
+                    self.observe(device, int(state.group(1)), {"relay": state.group(2).lower()})
                     logging.info(
                         "outlet_event mac=%s outlet=%s state=%s",
                         identified_mac,
@@ -221,12 +244,13 @@ class DirectMttlLab:
                     continue
 
                 logging.info("protocol_frame mac=%s frame=%s", identified_mac, frame[:2048])
-        except (UnicodeDecodeError, ValueError, ConnectionError, asyncio.IncompleteReadError) as exc:
+        except (UnicodeDecodeError, ValueError, ConnectionError, asyncio.IncompleteReadError, asyncio.TimeoutError) as exc:
             logging.warning("device_connection_error peer=%s error=%s", peer, exc)
         finally:
             if identified_mac:
                 current = self.devices.get(identified_mac)
                 if current and current.writer is writer:
+                    self.fail_pending(current)
                     self.devices.pop(identified_mac, None)
                     logging.info("device_offline mac=%s peer=%s", identified_mac, peer)
             writer.close()
@@ -234,6 +258,18 @@ class DirectMttlLab:
                 await writer.wait_closed()
             except Exception:
                 pass
+
+    def observe(self, device, outlet, values):
+        current = device.outlets.setdefault(outlet, {"channel": outlet})
+        current.update(values)
+        pending = device.pending.get(outlet)
+        if pending and values.get("relay") == pending[0] and not pending[1].done():
+            pending[1].set_result(True)
+
+    def fail_pending(self, device):
+        for _, future in device.pending.values():
+            if not future.done():
+                future.set_exception(ConnectionError("device disconnected"))
 
     async def handle_admin(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -265,7 +301,11 @@ class DirectMttlLab:
                         "model": d.model,
                         "firmware": d.firmware,
                         "peer": d.peer,
-                        "last_seen": int(d.last_seen),
+                        "last_seen": d.last_seen,
+                        "connected_at": d.connected_at,
+                        "online": time.time() - d.last_seen < 90,
+                        "outlets": list(d.outlets.values()),
+                        "pending_outlets": list(d.pending),
                     }
                     for d in self.devices.values()
                 ],
@@ -292,8 +332,23 @@ class DirectMttlLab:
             device = self.devices.get(mac)
             if not device:
                 return {"ok": False, "error": "device offline"}
-            await self.send(device, f"up:onoff:{outlet}:{parts[0]}")
-            return {"ok": True}
+            if self.allowed_mac != mac:
+                return {"ok": False, "status": "failed", "error": "MAC not allow-listed"}
+            if device.pending or time.monotonic() - device.last_command < 1:
+                return {"ok": False, "status": "failed", "error": "command rate limited or busy"}
+            future = asyncio.get_running_loop().create_future()
+            device.pending[outlet] = (parts[0], future)
+            device.last_command = time.monotonic()
+            try:
+                await self.send(device, f"up:onoff:{outlet}:{parts[0]}")
+                await asyncio.wait_for(future, self.command_timeout)
+                return {"ok": True, "status": "confirmed"}
+            except asyncio.TimeoutError:
+                return {"ok": False, "status": "timeout", "error": "no fresh device confirmation"}
+            except ConnectionError:
+                return {"ok": False, "status": "failed", "error": "device disconnected"}
+            finally:
+                device.pending.pop(outlet, None)
 
         return {"ok": False, "error": "commands: status | refresh MAC | on MAC 1..4 | off MAC 1..4"}
 
@@ -325,33 +380,40 @@ def parse_getinfo(frame: str):
         if channel in seen:
             return None
 
-        fields = match.group(2).split(";")
+        fields = match.group(2).rstrip(":").split(";")
         # Verified fields used by FG Link:
         # 0 test, 1 relay, 2 fixed, 3 overload, 4 overheat,
         # 5 power, 6 energy, 7 previous energy, 8 config,
         # 9 device status, 10 event code, 11 temperature.
-        if len(fields) < 12:
-            return None
+        if len(fields) < 2:
+            continue
         fields = fields[:12]
 
         relay = fields[1].lower()
         if relay not in {"on", "off"}:
-            return None
-        try:
-            power_raw = int(fields[5])
-            energy_wh = int(fields[6], 16)
-            temperature_c = int(fields[11])
-        except ValueError:
-            return None
+            continue
+        def numeric(index, base=10):
+            try:
+                return int(fields[index], base)
+            except (IndexError, ValueError):
+                return None
+        power_raw = numeric(5)
+        energy_wh = numeric(6, 16)
+        temperature_c = numeric(11)
+        def optional(index):
+            return fields[index] if len(fields) > index else None
 
         outlets.append(
             {
                 "channel": channel,
                 "relay": relay,
-                "power_w": power_raw / 1000.0,
+                "power_w": power_raw / 1000.0 if power_raw is not None else None,
                 "energy_wh": energy_wh,
                 "temperature_c": temperature_c,
-                "event_code": fields[10].upper(),
+                "event_code": (optional(10) or "").upper(),
+                "overload": optional(3),
+                "overheat": optional(4),
+                "device_status": optional(9),
             }
         )
         seen.add(channel)
