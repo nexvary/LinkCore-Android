@@ -124,7 +124,8 @@ def test_replacement_updater_rejects_legacy_runtime(tmp_path):
     assert not list(installed.glob('direct-backup-*'))
 
 
-def test_customer_update_preserves_flat_runtime_and_rolls_back(tmp_path):
+@pytest.mark.parametrize("backend", ["sqlite", "postgresql"])
+def test_customer_update_preserves_flat_runtime_and_rolls_back(tmp_path, backend):
     import sqlite3
     installed, env = prepare(tmp_path)
     original_main = '# FG_DIRECT_EXTENSION_V1\n# Original API and database remain intact\n'
@@ -159,14 +160,23 @@ if [[ "$url" == */app/* ]]; then cp "$FIXTURE_SOURCE/server/app/$name" "$output"
     docker = commands / 'docker'
     docker.write_text('''#!/bin/bash
 printf "%s\\n" "$*" >> "$FIXTURE_DOCKER_LOG"
-if [[ "$*" == "compose exec -T api python -" ]]; then cat >/dev/null; fi
+if [[ "$*" == "compose exec -T api python -c "* ]]; then printf '%s\\n' "$FIXTURE_BACKEND"; fi
+if [[ "$*" == "compose exec -T api python -" ]]; then
+ script=$(cat)
+ if [[ "$script" == *"url = engine.url"* ]]; then printf 'fguser\\nfgdatabase\\n'; fi
+fi
+if [[ "$*" == "compose exec -T db sh "* ]]; then
+ [[ -z "${FIXTURE_DUMP_FAIL:-}" ]] || exit 3
+ printf 'fixture-custom-pg-dump'
+fi
+if [[ "$*" == "compose exec -T db pg_restore --list" ]]; then cat >/dev/null; printf 'validated archive\\n'; fi
 if [[ "$*" == compose\ cp\ * ]]; then cp "$FIXTURE_DATABASE" "${@: -1}"; fi
 if [[ "$*" == "compose up -d --build --no-deps api" && -n "${FIXTURE_FAIL_FLAG:-}" && ! -f "$FIXTURE_FAIL_FLAG" ]]; then touch "$FIXTURE_FAIL_FLAG"; exit 2; fi
 ''')
     docker.chmod(0o755)
     env.update(NEXVARY_MTTL_INSTALL_DIR=str(lab.parent),
                NEXVARY_MTTL_SYSTEMD_DROPIN_DIR=str(tmp_path / 'systemd'),
-               FG_DIRECT_SOURCE_COMMIT='1' * 40, FIXTURE_DATABASE=str(database))
+               FG_DIRECT_SOURCE_COMMIT='1' * 40, FIXTURE_DATABASE=str(database), FIXTURE_BACKEND=backend)
     preserved = {name: (installed / name).read_bytes() for name in
                  ('app/main.py', 'app/database.py', '.env', 'Dockerfile', 'requirements.txt', 'docker-compose.yml', 'Caddyfile')}
     installer = SCRIPT.parent / 'update-direct-users.sh'
@@ -188,4 +198,14 @@ if [[ "$*" == "compose up -d --build --no-deps api" && -n "${FIXTURE_FAIL_FLAG:-
         assert db.execute('SELECT name FROM existing_accounts').fetchall() == [('existing-customer',)]
     backups = list(installed.glob('direct-users-backup-*'))
     assert len(backups) == 2
-    assert all((path / 'database.sqlite').exists() for path in backups)
+    backup_name = 'database.sqlite' if backend == 'sqlite' else 'database.pgdump'
+    assert all((path / backup_name).exists() for path in backups)
+    if backend == 'postgresql':
+        calls = Path(env['FIXTURE_DOCKER_LOG']).read_text()
+        assert 'pg_restore --list' in calls and 'fguser fgdatabase' in calls
+        env['FIXTURE_DUMP_FAIL'] = '1'
+        previous_daemon = (lab / 'direct_mttl_lab.py').read_bytes()
+        result = subprocess.run(['bash', str(installer)], env=env, capture_output=True, text=True)
+        assert result.returncode != 0
+        assert (installed / 'app/legacy_direct_users.py').read_bytes() == previous
+        assert (lab / 'direct_mttl_lab.py').read_bytes() == previous_daemon

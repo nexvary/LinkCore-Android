@@ -24,7 +24,12 @@ mkdir -m 700 "$BACKUP"
 cp -a "$SERVER_DIR/app" "$BACKUP/app"
 cp -a "$LAB_DIR/server/direct_mttl_lab.py" "$BACKUP/daemon.previous.py"
 [[ ! -f "$DROPIN_DIR/direct-users.conf" ]] || cp -a "$DROPIN_DIR/direct-users.conf" "$BACKUP/direct-users.previous.conf"
-# Snapshot the running SQLite database through sqlite3's consistent backup API.
+# Detect the engine without printing credentials. No runtime changes yet.
+docker compose exec -T api python -c 'from app.database import engine; print(engine.url.get_backend_name())' > "$STAGING/backend"
+BACKEND=$(cat "$STAGING/backend")
+case "$BACKEND" in
+sqlite)
+# Snapshot SQLite through its consistent backup API.
 docker compose exec -T api python - <<'PY'
 import os, sqlite3
 from app.database import engine
@@ -39,6 +44,32 @@ with sqlite3.connect(engine.url.database) as source, sqlite3.connect(backup) as 
 PY
 docker compose cp api:/tmp/fg-direct-users-backup.sqlite "$BACKUP/database.sqlite"
 chmod 600 "$BACKUP/database.sqlite"
+;;
+postgresql)
+# Verify the Compose db matches the API, then use its installed pg_dump.
+docker compose exec -T api python - <<'PY' > "$STAGING/postgres-target"
+from app.database import engine
+url = engine.url
+if url.host != 'db' or url.port not in (None, 5432):
+    raise SystemExit('PostgreSQL target is not the local Compose db; stopped before changes')
+for value in (url.username, url.database):
+    if not value or any(c in value for c in '\r\n'):
+        raise SystemExit('Invalid PostgreSQL target; stopped before changes')
+    print(value)
+PY
+mapfile -t PG_TARGET < "$STAGING/postgres-target"
+[[ ${#PG_TARGET[@]} -eq 2 ]] || { echo 'Cannot determine PostgreSQL target' >&2; exit 1; }
+(umask 077; docker compose exec -T db sh -eu -c '
+  [ "$1" = "$POSTGRES_USER" ] && [ "$2" = "$POSTGRES_DB" ] || { echo "Database target mismatch; stopped before changes" >&2; exit 1; }
+  export PGPASSWORD="$POSTGRES_PASSWORD"
+  exec pg_dump --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --format=custom
+' sh "${PG_TARGET[0]}" "${PG_TARGET[1]}" > "$BACKUP/database.pgdump")
+[[ -s "$BACKUP/database.pgdump" ]]
+docker compose exec -T db pg_restore --list < "$BACKUP/database.pgdump" > "$STAGING/postgres-manifest"
+[[ -s "$STAGING/postgres-manifest" ]]
+;;
+*) echo 'Unsupported database backend; stopped before changes' >&2; exit 1;;
+esac
 rollback(){
   trap - ERR
   cp -a "$BACKUP/app/." "$SERVER_DIR/app/"
