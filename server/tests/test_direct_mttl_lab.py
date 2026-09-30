@@ -16,6 +16,18 @@ class DirectMttlLabParserTests(unittest.TestCase):
     def test_getinfo_requires_four_channels(self):
         self.assertIsNone(parse_getinfo("up:getinfo:1:x"))
 
+    def test_getinfo_partial_live_frame(self):
+        frame = (
+            "up:getinfo:"
+            "1:0;on;3;on;on;0;00000000;00000000;00000000;off;00;25:"
+            "3:0;on;3;on;on;0;00000000;00000000;00000000;off;00;24:"
+            "4:0;on;3;on;on;0;00000000;00000000;00000000;off;00;26"
+        )
+        parsed = parse_getinfo(frame)
+        self.assertIsNotNone(parsed)
+        self.assertEqual([item["channel"] for item in parsed], [1, 3, 4])
+        self.assertEqual(parsed[0]["temperature_c"], 25)
+
     def test_getinfo_field_capture_from_mttl_w01(self):
         block = "0;on;3;on;on;0;00000000;00000000;00000000;off;00;25"
         frame = "up:getinfo:" + ":".join(
