@@ -299,6 +299,13 @@ class DirectMttlLab:
 
 
 def parse_getinfo(frame: str):
+    """Parse live MTTL getinfo frames without assuming every firmware has
+    exactly the same total field width.
+
+    Each outlet block is introduced by :<channel>: and its payload is
+    semicolon-delimited. We parse any well-formed channel block present and
+    require all four channels only when the frame actually advertises them.
+    """
     prefix = "up:getinfo:"
     if frame is None:
         return None
@@ -306,33 +313,29 @@ def parse_getinfo(frame: str):
     if not frame.startswith(prefix):
         return None
 
-    # Firmware revisions observed in the field can vary slightly in payload
-    # width. Split by the four channel markers instead of requiring an exact
-    # global colon count, then consume the first 12 verified fields per channel.
     payload = frame[len(prefix):]
-    segments = re.split(r":(?=[1-4]:)", payload)
-    if len(segments) != 4:
+    matches = list(re.finditer(r"(?:^|:)([1-4]):(.*?)(?=:[1-4]:|$)", payload))
+    if not matches:
         return None
 
     outlets = []
     seen = set()
-    for segment in segments:
-        channel_text, separator, data = segment.partition(":")
-        if not separator:
-            return None
-        try:
-            channel = int(channel_text)
-        except ValueError:
-            return None
-        if channel not in (1, 2, 3, 4) or channel in seen:
+    for match in matches:
+        channel = int(match.group(1))
+        if channel in seen:
             return None
 
-        fields = data.split(";")
+        fields = match.group(2).split(";")
+        # Verified fields used by FG Link:
+        # 0 test, 1 relay, 2 fixed, 3 overload, 4 overheat,
+        # 5 power, 6 energy, 7 previous energy, 8 config,
+        # 9 device status, 10 event code, 11 temperature.
         if len(fields) < 12:
             return None
         fields = fields[:12]
 
-        if fields[1].lower() not in {"on", "off"}:
+        relay = fields[1].lower()
+        if relay not in {"on", "off"}:
             return None
         try:
             power_raw = int(fields[5])
@@ -344,7 +347,7 @@ def parse_getinfo(frame: str):
         outlets.append(
             {
                 "channel": channel,
-                "relay": fields[1].lower(),
+                "relay": relay,
                 "power_w": power_raw / 1000.0,
                 "energy_wh": energy_wh,
                 "temperature_c": temperature_c,
@@ -353,9 +356,9 @@ def parse_getinfo(frame: str):
         )
         seen.add(channel)
 
-    if seen != {1, 2, 3, 4}:
-        return None
-    return sorted(outlets, key=lambda item: item["channel"])
+    # A live response may be split or firmware-specific; one valid outlet block
+    # is enough to classify the frame as telemetry. The next poll fills the rest.
+    return sorted(outlets, key=lambda item: item["channel"]) if outlets else None
 
 
 async def amain(args) -> None:
