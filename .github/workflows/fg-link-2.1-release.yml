@@ -93,13 +93,15 @@ jobs:
           FGRCK_DATABASE_URL: sqlite:////tmp/panel-preview.sqlite
           FGRCK_DIRECT_EMAIL_WORKER_ENABLED: 'false'
         run: |
-          uvicorn app.standalone:app --host 127.0.0.1 --port 8080 > /tmp/panel-preview.log 2>&1 &
-          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/panel.key -out /tmp/panel.crt -days 1 -subj /CN=localhost
+          uvicorn app.standalone:app --host 127.0.0.1 --port 8080 --ssl-keyfile /tmp/panel.key --ssl-certfile /tmp/panel.crt > /tmp/panel-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do curl -kfsS https://127.0.0.1:8080/healthz && break; sleep 1; done
           printf '%s' 'PreviewPassword123' | python -m app.bootstrap_admin
       - run: npm install playwright && npx playwright install --with-deps chromium
       - run: node scripts/verify_panel_bundle_ui.cjs
       - run: python scripts/package_fg_panel.py --commit "$GITHUB_SHA"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: FG-Link-Panel-Standalone
           path: |
