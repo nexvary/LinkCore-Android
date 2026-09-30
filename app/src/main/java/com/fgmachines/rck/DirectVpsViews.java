@@ -27,6 +27,10 @@ final class DirectVpsViews {
         page.setBackgroundColor(Color.rgb(7, 17, 26));
         page.setPadding(dp(a, 20), dp(a, 32), dp(a, 20), dp(a, 24));
         page.setLayoutDirection(a.getResources().getConfiguration().getLayoutDirection());
+        android.widget.ImageView logo = new android.widget.ImageView(a);
+        logo.setImageResource(R.drawable.fg_link_launcher_v169);
+        logo.setContentDescription(a.getString(R.string.app_name));
+        page.addView(logo, new LinearLayout.LayoutParams(dp(a, 80), dp(a, 80)));
         return page;
     }
     static TextView text(Activity a, String value, int size) {

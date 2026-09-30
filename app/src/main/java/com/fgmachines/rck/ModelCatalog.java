@@ -15,7 +15,7 @@ import java.util.Locale;
  */
 public final class ModelCatalog {
     public static final String PRIMARY_MODEL = "MTTL-W01";
-    public static final String BOOT_MODEL = "lgutap";
+    public static final String BOOT_MODEL = WireCodec.bootModel();
 
     public static final int SETUP_PORT = 30300;
     public static final String SETUP_ADDRESS = "192.168.1.1";
@@ -73,7 +73,7 @@ public final class ModelCatalog {
         String value = ssid.trim();
         int separator = value.lastIndexOf('_');
         if (separator < 0 || separator == value.length() - 1) return null;
-        return "LGU_" + value.substring(separator + 1);
+        return WireCodec.setupPasswordPrefix() + value.substring(separator + 1);
     }
 
     public static boolean isCompatibleBootModel(String model) {

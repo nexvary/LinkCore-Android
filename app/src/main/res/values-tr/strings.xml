@@ -528,21 +528,25 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="event_voice_command">Sesli komut</string>
 
 
-    <string name="cloud_account_title">FG Cloud — Beklemede</string>
-    <string name="cloud_account_note">FG Cloud uygulamada hazırdır ancak barındırılan hizmet daha sonra başlatılana kadar bilinçli olarak beklemededir. LAN varsayılandır; ZeroTier VPS olmadan uzaktan erişim sağlar.</string>
-    <string name="cloud_endpoint_hint">HTTPS VPS adresi</string>
+    <string name="cloud_account_title">FG Link VPS — 1.6.13</string>
+    <string name="cloud_account_note">Uygulama bu telefonun parmak izini otomatik oluşturur. FG Link yönetimine gönderin. Sunucu adresi uygulamada sabittir; yalnızca bu telefon için verilen API anahtarını girmeniz gerekir.</string>
+    <string name="cloud_fingerprint_label">Telefon parmak izi</string>
+    <string name="cloud_copy_fingerprint">TELEFON PARMAK İZİNİ KOPYALA</string>
+    <string name="cloud_fingerprint_instruction">Önce bu parmak izini FG Link yönetimine gönderin. API oluşturulduktan sonra yalnızca API anahtarını aşağıya yapıştırın.</string>
+    <string name="cloud_fingerprint_copied">Telefon parmak izi kopyalandı</string>
+    <string name="cloud_endpoint_hint">Sabit FG Link VPS</string>\n    <string name="cloud_fixed_server_label">Sabit sunucu</string>\n    <string name="cloud_fixed_server_value">https://link.fgmachines.org</string>
     <string name="cloud_email_hint">Bulut hesabı e-postası</string>
-    <string name="cloud_password_hint">Bulut hesabı parolası</string>
+    <string name="cloud_password_hint">FG Link API token</string>
     <string name="cloud_register">Hesap oluştur</string>
     <string name="cloud_login">Giriş yap</string>
-    <string name="cloud_sync_enable">FG Cloud rölesini etkinleştir</string>
+    <string name="cloud_sync_enable">VPS status sync</string>
     <string name="cloud_status_signed_out">FG Cloud etkin değil. LAN ve ZeroTier kullanılabilir.</string>
     <string name="cloud_status_on_hold">FG Cloud etkin değil. LAN ve ZeroTier kullanılabilir.</string>
-    <string name="cloud_status_missing">HTTPS VPS adresini, e-postayı ve parolayı girin.</string>
-    <string name="cloud_status_authenticating">Buluta bağlanılıyor…</string>
-    <string name="cloud_status_ready">Bulut hesabı kaydedildi. Hazır olduğunuzda denetleyici rölesini etkinleştirin.</string>
+    <string name="cloud_status_missing">Size verilen FG Link API anahtarını girin.</string>
+    <string name="cloud_status_authenticating">Bu telefon VPS API anahtarına bağlanıyor…</string>
+    <string name="cloud_status_ready">VPS bağlı. Bu telefon FG Link API anahtarına bağlandı ve durum senkronizasyonu etkin.</string>
     <string name="cloud_status_failed">Bulut hatası: %1$s</string>
-    <string name="cloud_sync_requires_login">Önce giriş yapın, ardından denetleyici rölesini etkinleştirin.</string>
+    <string name="cloud_sync_requires_login">Önce FG Link API anahtarını girin.</string>
 
 
     <string name="picker_apply">Uygula</string>
@@ -700,11 +704,43 @@ Aşırı yük: %6$s · Aşırı ısınma: %7$s · Olay: %8$s</string>
     <string name="email_alerts_enabled">E-posta uyarıları etkin</string>
     <string name="email_alerts_disabled">E-posta uyarıları devre dışı</string>
 
-    <string name="nav_devices">Cihazlar</string>
-    <string name="devices_title">Cihazlar</string>
+    <string name="nav_devices">Cihazlarım</string>
+    <string name="devices_title">Cihazlarım</string>
     <string name="devices_empty">Henüz kayıtlı cihaz yok.</string>
     <string name="devices_hint">Cihazı seçmek ve abone denetimlerini açmak için karta dokunun.</string>
     <string name="devices_limit_note">Burada en fazla 10 kayıtlı cihaz gösterilir.</string>
     <string name="devices_page_summary">%1$d cihaz · %2$d çevrimiçi</string>
+    <string name="device_selected_current">✓ Şu anda seçili</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Akıllı Ev Ekosistemleri</string>
+    <string name="ecosystem_note">Doğrulanmış MTTL kontrol yolunu değiştirmeden Home Assistant, Alexa, Google Home ve Matter için tek köprü katmanı.</string>
+    <string name="ecosystem_summary_waiting">Ekosistem yolları denetleniyor…</string>
+    <string name="ecosystem_summary_format">%1$d/%2$d yol hazır · Matter köprüsü ayrıldı</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Yerel köprü HAZIR</string>
+    <string name="ecosystem_alexa">Amazon Alexa · Home Assistant üzerinden HAZIR</string>
+    <string name="ecosystem_google_home">Google Home · Home Assistant üzerinden HAZIR</string>
+    <string name="ecosystem_matter">Matter · Köprü ayrıldı / henüz etkin değil</string>
+    <string name="ecosystem_setup_button">Home Assistant köprüsünü kur</string>
+    <string name="ecosystem_setup_hint">Burada bir Home Assistant belirteci oluşturun, ardından Home Assistant’ı Alexa veya Google Home’a bağlayın.</string>
+    <string name="cloud_connect_vps">VPS bağla</string>
+    <string name="fg_machines_website">Resmî web sitesi · fgmachines.org</string>
+    <string name="fg_machines_email">E-posta · info@fgmachines.org</string>
+
+    <string name="controller_route_title">Denetleyici yolu</string>
+    <string name="controller_route_local_active">Yerel / Router / ZeroTier etkin kalır ve FG Link VPS’den bağımsızdır.</string>
+    <string name="controller_route_vps_direct">FG Link VPS Direct — isteğe bağlı bulut ağ geçidi</string>
+    <string name="controller_route_vps_locked">VPS Direct hazırlandı ancak doğrudan MTTL testleri tamamlanana kadar genel kullanıma kapalıdır. Router / telefon / ZeroTier kullanmaya devam edin.</string>
+    <string name="controller_route_vps_ready">VPS Direct test kapısı açık. Seçildiğinde, priz kurulmadan önce FG Link VPS’nin genel IPv4 adresi çözümlenir.</string>
+    <string name="controller_route_local_restored">Yerel denetleyici yolu geri yüklendi. LAN / Router / ZeroTier kullanılabilir durumda.</string>
+    <string name="controller_route_vps_resolving">Priz kurulum Wi-Fi ağına bağlanmadan önce FG Link VPS genel IPv4 adresi çözümleniyor…</string>
+    <string name="controller_route_vps_resolved">VPS Direct denetleyicisi hazırlandı: %1$s. Bu yol kayıtlı Local / ZeroTier yolundan bağımsızdır.</string>
+    <string name="controller_route_vps_resolve_failed">VPS Direct hazırlanamadı: %1$s</string>
+    <string name="cloud_create_account">VPS hesabı oluştur</string>
+    <string name="cloud_create_account_locked">VPS hesabı oluştur — testlerden sonra</string>
+    <string name="cloud_connect_vps_pilot">Test API’sini bağla</string>
+    <string name="cloud_self_registration_locked_status">Uygulama içi VPS hesap oluşturma hazırlandı ancak testler tamamlanana kadar devre dışıdır. Yerel kontrol ve ZeroTier etkilenmez.</string>
+    <string name="cloud_self_registration_creating">VPS hesabı oluşturuluyor ve bu telefon bağlanıyor…</string>
+    <string name="cloud_self_registration_ready">VPS hesabı oluşturuldu ve bağlandı. Yerel / ZeroTier bağımsız yedek yol olarak kullanılabilir.</string>
+
 </resources>

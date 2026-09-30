@@ -100,6 +100,37 @@ public final class CloudApiClient {
         return commands == null ? new JSONArray() : commands;
     }
 
+    /** Create a self-service VPS account. Server-side rollout is separately gated. */
+    public SelfRegistration selfRegister(String deviceFingerprint) throws IOException {
+        JSONObject body = json(
+                "device_fingerprint", deviceFingerprint == null ? "" : deviceFingerprint);
+        JSONObject response = request("POST", "/api/v1/public/register", "", "", body);
+        return new SelfRegistration(
+                response.optString("api_token", ""),
+                response.optString("account_id", ""));
+    }
+
+    /** Bind this FG Link installation to the server-issued account token. */
+    public JSONObject bindPhone(String bearer, String deviceFingerprint) throws IOException {
+        JSONObject body = json("device_fingerprint", deviceFingerprint == null ? "" : deviceFingerprint);
+        return request("POST", "/api/v1/client/bind", bearer, "", body);
+    }
+
+    /** Keep the one-phone/one-account binding alive. */
+    public JSONObject heartbeatPhone(String bearer, String deviceFingerprint) throws IOException {
+        JSONObject body = json("device_fingerprint", deviceFingerprint == null ? "" : deviceFingerprint);
+        return request("POST", "/api/v1/client/heartbeat", bearer, "", body);
+    }
+
+    /** Publish only privacy-reduced strip inventory/status to the VPS. */
+    public JSONObject syncStrips(String bearer, String deviceFingerprint, JSONArray strips)
+            throws IOException {
+        JSONObject body = json(
+                "device_fingerprint", deviceFingerprint == null ? "" : deviceFingerprint,
+                "strips", strips == null ? new JSONArray() : strips);
+        return request("POST", "/api/v1/client/strips/sync", bearer, "", body);
+    }
+
     public void sendAlertEmail(String bearer, String subject, String message) throws IOException {
         JSONObject body = json(
                 "subject", subject == null ? "" : subject.trim(),
@@ -190,6 +221,16 @@ public final class CloudApiClient {
         ControllerCredentials(String controllerId, String controllerKey) {
             this.controllerId = controllerId == null ? "" : controllerId;
             this.controllerKey = controllerKey == null ? "" : controllerKey;
+        }
+    }
+
+    public static final class SelfRegistration {
+        public final String apiToken;
+        public final String accountId;
+
+        SelfRegistration(String apiToken, String accountId) {
+            this.apiToken = apiToken == null ? "" : apiToken;
+            this.accountId = accountId == null ? "" : accountId;
         }
     }
 }

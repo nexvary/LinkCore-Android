@@ -1,7 +1,7 @@
 <!-- The experimental owner screen supports Arabic and English; other locales use English. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="direct_title">Direct VPS · Experimental</string>
-    <string name="direct_choose_mode">FG Link · Connection</string>
+    <string name="direct_title">Direct VPS</string>
+    <string name="direct_choose_mode">FG Link 2.1 · Connection</string>
     <string name="direct_choose_help">Choose how to control your devices. LAN and ZeroTier remain available independently of the VPS.</string>
     <string name="direct_local">Android / LAN / ZeroTier</string>
     <string name="direct_switch_mode">Choose connection mode</string>

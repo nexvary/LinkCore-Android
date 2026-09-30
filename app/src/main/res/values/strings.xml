@@ -90,7 +90,7 @@
     <string name="settings_note">Language changes are applied immediately. Network provisioning stays local and does not require the Korean subscription service.</string>
     <string name="about_title">About the developer</string>
     <string name="about_line">In the name of Allah, the Most Gracious, the Most Merciful</string>
-    <string name="about_body">This program was developed by Alaa El Din Mohamed. This program is completely free for the sake of Allah.</string>
+    <string name="about_body">Developed by FG Machines. Lead developer: Alaa Mohamed. This program is completely free for the sake of Allah.</string>
     <string name="supported_models_title">Compatibility</string>
     <string name="supported_models_body">Primary verified family: MTTL-W01. Known certificate revisions include HU04139-17002A/B/C/D/E. Setup signatures TONLY_TAP_* and ONLY_TAP_* are recognized, with protocol verification before relay controls are enabled.</string>
 
@@ -119,6 +119,8 @@
     <string name="about_social_note">Personal account and business page</string>
     <string name="fg_machines_facebook">Business page</string>
     <string name="alaa_mohamed_facebook">Personal account</string>
+    <string name="fg_machines_website">Official website · fgmachines.org</string>
+    <string name="fg_machines_email">Email · info@fgmachines.org</string>
     <string name="open_link_failed">Could not open the link on this device.</string>
     <string name="wizard_assistant_title">Setup Assistant</string>
     <string name="wizard_local_badge">LOCAL</string>
@@ -536,21 +538,25 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="event_voice_command">Voice command</string>
 
 
-    <string name="cloud_account_title">FG Cloud — On Hold</string>
-    <string name="cloud_account_note">FG Cloud is already built into the app but intentionally dormant until the hosted service launches. LAN remains the default and ZeroTier provides remote access without a VPS.</string>
-    <string name="cloud_endpoint_hint">HTTPS VPS address</string>
+    <string name="cloud_account_title">FG Link VPS — 1.6.14</string>
+    <string name="cloud_account_note">The VPS is optional and complements Router, LAN and ZeroTier; it does not replace them. In-app VPS account creation is prepared but temporarily disabled until testing is complete. Test API tokens can still be connected to the fixed server.</string>
+    <string name="cloud_fingerprint_label">Phone fingerprint</string>
+    <string name="cloud_copy_fingerprint">COPY PHONE FINGERPRINT</string>
+    <string name="cloud_fingerprint_instruction">This fingerprint identifies this app installation. During testing, administration can issue a pilot API token; after public rollout, the account can be created directly inside the app.</string>
+    <string name="cloud_fingerprint_copied">Phone fingerprint copied</string>
+    <string name="cloud_endpoint_hint">Fixed FG Link VPS</string>\n    <string name="cloud_fixed_server_label">Fixed server</string>\n    <string name="cloud_fixed_server_value">https://link.fgmachines.org</string>
     <string name="cloud_email_hint">Cloud account email</string>
-    <string name="cloud_password_hint">Cloud account password</string>
+    <string name="cloud_password_hint">FG Link API token</string>
     <string name="cloud_register">Create account</string>
     <string name="cloud_login">Sign in</string>
-    <string name="cloud_sync_enable">Enable FG Cloud relay</string>
-    <string name="cloud_status_signed_out">FG Cloud is inactive. LAN and ZeroTier remain available.</string>
-    <string name="cloud_status_on_hold">FG Cloud is inactive. LAN and ZeroTier remain available.</string>
-    <string name="cloud_status_missing">Enter the HTTPS VPS address, email and password.</string>
-    <string name="cloud_status_authenticating">Contacting cloud…</string>
-    <string name="cloud_status_ready">Cloud account saved. Enable relay on the controller phone when ready.</string>
-    <string name="cloud_status_failed">Cloud error: %1$s</string>
-    <string name="cloud_sync_requires_login">Sign in first, then enable the controller relay.</string>
+    <string name="cloud_sync_enable">Enable VPS status sync</string>
+    <string name="cloud_status_signed_out">VPS sync is not connected. LAN and ZeroTier remain available.</string>
+    <string name="cloud_status_on_hold">VPS sync is not connected. LAN and ZeroTier remain available.</string>
+    <string name="cloud_status_missing">Enter your FG Link API token.</string>
+    <string name="cloud_status_authenticating">Binding this phone to the VPS account…</string>
+    <string name="cloud_status_ready">VPS connected. This phone is bound to one FG Link account and status sync is enabled.</string>
+    <string name="cloud_status_failed">VPS error: %1$s</string>
+    <string name="cloud_sync_requires_login">Enter your FG Link API token first.</string>
 
 
     <string name="picker_apply">Apply</string>
@@ -709,11 +715,42 @@ Overload: %6$s · Overheat: %7$s · Event: %8$s</string>
     <string name="email_alerts_enabled">Email alerts enabled</string>
     <string name="email_alerts_disabled">Email alerts disabled</string>
 
-    <string name="nav_devices">Devices</string>
-    <string name="devices_title">Devices</string>
+    <string name="nav_devices">My Devices</string>
+    <string name="devices_title">My Devices</string>
     <string name="devices_empty">No registered devices yet.</string>
     <string name="devices_hint">Tap a device card to select it and open its subscriber controls.</string>
     <string name="devices_limit_note">Up to 10 registered devices are shown here.</string>
     <string name="devices_page_summary">%1$d devices · %2$d online</string>
+    <string name="device_selected_current">✓ Selected now</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Smart Home Ecosystems</string>
+    <string name="ecosystem_note">One bridge layer for Home Assistant, Alexa, Google Home and Matter without changing the verified MTTL control path.</string>
+    <string name="ecosystem_summary_waiting">Checking ecosystem routes…</string>
+    <string name="ecosystem_summary_format">%1$d of %2$d routes ready · Matter bridge reserved</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Local bridge READY</string>
+    <string name="ecosystem_alexa">Amazon Alexa · READY via Home Assistant</string>
+    <string name="ecosystem_google_home">Google Home · READY via Home Assistant</string>
+    <string name="ecosystem_matter">Matter · Bridge reserved / not enabled yet</string>
+    <string name="ecosystem_setup_button">Set up Home Assistant bridge</string>
+    <string name="ecosystem_setup_hint">Create a Home Assistant token here, then connect Home Assistant to Alexa or Google Home.</string>
+    <string name="cloud_connect_vps">Connect VPS</string>
+
+    <!-- FG Link 1.6.14: optional VPS route; local/ZeroTier remains the default. -->
+    <string name="controller_route_title">Controller path</string>
+    <string name="controller_route_local_active">Local / Router / ZeroTier remains active and does not depend on the FG Link VPS.</string>
+    <string name="controller_route_vps_direct">FG Link VPS Direct — optional cloud gateway</string>
+    <string name="controller_route_vps_locked">VPS Direct is prepared but locked for public use until direct-MTTL testing is complete. Keep using Router / phone / ZeroTier.</string>
+    <string name="controller_route_vps_ready">VPS Direct test gate is enabled. Selecting it will resolve the FG Link VPS IPv4 before strip setup.</string>
+    <string name="controller_route_local_restored">Local controller path restored. LAN / Router / ZeroTier settings remain available.</string>
+    <string name="controller_route_vps_resolving">Resolving FG Link VPS public IPv4 before joining the strip setup Wi-Fi…</string>
+    <string name="controller_route_vps_resolved">VPS Direct controller prepared: %1$s. This route is independent from the saved Local / ZeroTier path.</string>
+    <string name="controller_route_vps_resolve_failed">Could not prepare VPS Direct: %1$s</string>
+    <string name="cloud_create_account">Create VPS account</string>
+    <string name="cloud_create_account_locked">Create VPS account — after testing</string>
+    <string name="cloud_connect_vps_pilot">Connect test API</string>
+    <string name="cloud_self_registration_locked_status">Self-service VPS account creation is prepared but disabled until testing is complete. Local / ZeroTier control is unaffected.</string>
+    <string name="cloud_self_registration_creating">Creating the VPS account and binding this phone…</string>
+    <string name="cloud_self_registration_ready">VPS account created and connected. Local / ZeroTier remains available as an independent fallback.</string>
+
 </resources>

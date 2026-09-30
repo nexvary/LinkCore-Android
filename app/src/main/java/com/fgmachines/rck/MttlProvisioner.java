@@ -258,11 +258,11 @@ public final class MttlProvisioner {
             BufferedReader reader = new BufferedReader(new InputStreamReader(
                     socket.getInputStream(), StandardCharsets.UTF_8));
 
-            send(writer, reader, "up:ip:" + controllerIp, true);
+            send(writer, reader, WireCodec.ipPrefix() + controllerIp, true);
             callback.onStatus("Controller address accepted. Sending hotspot/Wi-Fi settings…");
-            send(writer, reader, "up:connect:" + homeSsid + ":" + homePassword, true);
+            send(writer, reader, WireCodec.connectPrefix() + homeSsid + ":" + homePassword, true);
             callback.onStatus("Network settings accepted. Rebooting strip…");
-            send(writer, reader, "up:reboot:0", false);
+            send(writer, reader, WireCodec.reboot(), false);
 
             finishNetwork();
             active.set(false);

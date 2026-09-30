@@ -77,8 +77,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_REMOTE_TOKEN = "remote_token";
     private static final String PREF_FREE_REMOTE_MODE = "free_remote_mode";
     private static final String PREF_FREE_REMOTE_HOST = "free_remote_host";
-    private static final String FG_MACHINES_FACEBOOK_URL = "https://www.facebook.com/share/1Hx66RKhd2/";
-    private static final String ALAA_MOHAMED_FACEBOOK_URL = "https://www.facebook.com/share/1DGDH6q8xV/";
+    private static final String PREF_VPS_DIRECT_SELECTED = "vps_direct_selected";
+    private static final String FG_MACHINES_FACEBOOK_URL = "https://www.facebook.com/share/1T7r3WpH8Y/";
+    private static final String ALAA_MOHAMED_FACEBOOK_URL = "https://www.facebook.com/share/1EKVAyZZ2C/";
+    private static final String FG_MACHINES_WEBSITE_URL = "https://fgmachines.org";
+    private static final String FG_MACHINES_EMAIL_URI = "mailto:info@fgmachines.org";
 
     private TextInputEditText ipInput;
     private TextInputEditText setupSsidInput;
@@ -103,10 +106,14 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton openWifiButton;
     private MaterialButton fgMachinesFacebookButton;
     private MaterialButton alaaMohamedFacebookButton;
+    private MaterialButton fgMachinesWebsiteButton;
+    private MaterialButton fgMachinesEmailButton;
     private Spinner languageSpinner;
     private Spinner setupModeSpinner;
     private TextView setupModeDescription;
     private TextView setupModeBadge;
+    private MaterialSwitch vpsDirectSwitch;
+    private TextView vpsDirectStatus;
     private TextView setupReadinessText;
     private TextView totalPowerValue;
     private TextView totalEnergyValue;
@@ -198,7 +205,9 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton remoteOnButton;
     private MaterialButton remoteOffButton;
     private TextView remoteStatus;
-    private TextInputEditText cloudEndpointInput;
+    private TextView cloudFingerprintText;
+    private MaterialButton copyCloudFingerprintButton;
+    private TextView cloudFixedServerText;
     private TextInputEditText cloudEmailInput;
     private TextInputEditText cloudPasswordInput;
     private MaterialButton cloudRegisterButton;
@@ -366,6 +375,7 @@ public class MainActivity extends AppCompatActivity {
         controllerIntent.setAction(MttlControllerService.ACTION_START);
         ContextCompat.startForegroundService(this, controllerIntent);
         configurePlatformHub();
+        configureEcosystemBridge();
         configureLanguageSelector();
         configureSetupModeSelector();
         configureOutletControls();
@@ -388,6 +398,7 @@ public class MainActivity extends AppCompatActivity {
         configureRemoteControl();
         configureAboutLinks();
         restoreSetupProfile();
+        configureControllerRoute();
         startLocalController();
         updateHotspotStatus(false);
 
@@ -418,6 +429,8 @@ public class MainActivity extends AppCompatActivity {
         targetWifiSsidInput = findViewById(R.id.targetWifiSsidInput);
         targetWifiPasswordInput = findViewById(R.id.targetWifiPasswordInput);
         controllerIpInput = findViewById(R.id.controllerIpInput);
+        vpsDirectSwitch = findViewById(R.id.vpsDirectSwitch);
+        vpsDirectStatus = findViewById(R.id.vpsDirectStatus);
         deviceState = findViewById(R.id.deviceState);
         platformSummary = findViewById(R.id.platformSummary);
         discoveryDetail = findViewById(R.id.discoveryDetail);
@@ -437,6 +450,8 @@ public class MainActivity extends AppCompatActivity {
         openWifiButton = findViewById(R.id.openWifiButton);
         fgMachinesFacebookButton = findViewById(R.id.fgMachinesFacebookButton);
         alaaMohamedFacebookButton = findViewById(R.id.alaaMohamedFacebookButton);
+        fgMachinesWebsiteButton = findViewById(R.id.fgMachinesWebsiteButton);
+        fgMachinesEmailButton = findViewById(R.id.fgMachinesEmailButton);
         languageSpinner = findViewById(R.id.languageSpinner);
         setupModeSpinner = findViewById(R.id.setupModeSpinner);
         setupModeDescription = findViewById(R.id.setupModeDescription);
@@ -520,7 +535,9 @@ public class MainActivity extends AppCompatActivity {
         remoteOnButton = findViewById(R.id.remoteOnButton);
         remoteOffButton = findViewById(R.id.remoteOffButton);
         remoteStatus = findViewById(R.id.remoteStatus);
-        cloudEndpointInput = findViewById(R.id.cloudEndpointInput);
+        cloudFingerprintText = findViewById(R.id.cloudFingerprintText);
+        copyCloudFingerprintButton = findViewById(R.id.copyCloudFingerprintButton);
+        cloudFixedServerText = findViewById(R.id.cloudFixedServerText);
         cloudEmailInput = findViewById(R.id.cloudEmailInput);
         cloudPasswordInput = findViewById(R.id.cloudPasswordInput);
         cloudRegisterButton = findViewById(R.id.cloudRegisterButton);
@@ -621,8 +638,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureCompactSettings() {
-        findViewById(R.id.connectionModeButton).setOnClickListener(v ->
-                startActivity(new Intent(this, ConnectionModeActivity.class)));
         MaterialButton toggle = findViewById(R.id.settingsAdvancedToggle);
         View advanced = findViewById(R.id.advancedSettingsContainer);
         if (toggle == null || advanced == null) return;
@@ -702,6 +717,26 @@ public class MainActivity extends AppCompatActivity {
             Snackbar.make(hubStatus, R.string.platform_planned_panel, Snackbar.LENGTH_LONG).show();
             showPage(1);
         });
+    }
+
+    private void configureEcosystemBridge() {
+        TextView status = findViewById(R.id.ecosystemStatus);
+        if (status != null) {
+            status.setText(getString(
+                    R.string.ecosystem_summary_format,
+                    SmartHomeEcosystemCatalog.readyRoutes(),
+                    SmartHomeEcosystemCatalog.totalRoutes()));
+        }
+
+        MaterialButton setupButton = findViewById(R.id.ecosystemSetupButton);
+        if (setupButton != null) {
+            setupButton.setOnClickListener(v -> {
+                showPage(3);
+                scrollToSection(R.id.pageSettings, R.id.sharingCard);
+                Snackbar.make(setupButton, R.string.ecosystem_setup_hint,
+                        Snackbar.LENGTH_LONG).show();
+            });
+        }
     }
 
     private void scrollToSection(int scrollViewId, int sectionId) {
@@ -1625,24 +1660,21 @@ public class MainActivity extends AppCompatActivity {
 
         devicesGrid.removeAllViews();
         List<FleetStore.DeviceRecord> records = fleetStore.list();
-        int shown = Math.min(10, records.size());
+        int shown = DeviceGridPolicy.visibleCount(records.size());
         int online = 0;
 
-        // Build explicit horizontal rows instead of relying on GridLayout sizing.
-        // Every row always owns two equal-weight slots, so a single/odd card can
-        // never expand to full width on OEM Android layouts.
-        for (int rowStart = 0; rowStart < shown; rowStart += 2) {
+        for (int rowStart = 0; rowStart < shown; rowStart += DeviceGridPolicy.COLUMNS) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setWeightSum(2f);
+            row.setWeightSum(DeviceGridPolicy.COLUMNS);
             row.setBaselineAligned(false);
             row.setLayoutParams(new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
 
-            for (int column = 0; column < 2; column++) {
+            for (int column = 0; column < DeviceGridPolicy.COLUMNS; column++) {
                 int index = rowStart + column;
-                int margin = dp(3);
+                int margin = dp(4);
 
                 if (index >= shown) {
                     View spacer = new View(this);
@@ -1657,6 +1689,7 @@ public class MainActivity extends AppCompatActivity {
                 ControllerHub.DeviceState live = controllerHub == null
                         ? null : controllerHub.state(record.mac);
                 boolean connected = live != null && live.connected;
+                boolean selected = activeMac != null && record.mac.equalsIgnoreCase(activeMac);
                 if (connected) online++;
 
                 MaterialCardView card = new MaterialCardView(this);
@@ -1664,46 +1697,74 @@ public class MainActivity extends AppCompatActivity {
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
                 cardParams.setMargins(margin, margin, margin, margin);
                 card.setLayoutParams(cardParams);
-                card.setMinimumHeight(dp(68));
-                card.setRadius(dp(13));
-                card.setCardElevation(dp(1));
-                card.setCardBackgroundColor(getColor(connected
-                        ? R.color.fg_surface_2 : R.color.fg_surface));
-                card.setStrokeWidth(dp(activeMac != null
-                        && record.mac.equalsIgnoreCase(activeMac) ? 3 : 2));
-                card.setStrokeColor(getColor(connected ? R.color.fg_green : R.color.fg_red));
+                card.setMinimumHeight(dp(84));
+                card.setRadius(dp(14));
+                card.setCardElevation(dp(selected ? 4 : 1));
+                card.setCardBackgroundColor(getColor(selected
+                        ? R.color.fg_surface_3
+                        : connected ? R.color.fg_surface_2 : R.color.fg_surface));
+                card.setStrokeWidth(dp(selected ? 3 : 2));
+                card.setStrokeColor(getColor(selected
+                        ? R.color.fg_blue_bright
+                        : connected ? R.color.fg_neon_green : R.color.fg_metal_shadow));
                 card.setClickable(true);
                 card.setFocusable(true);
 
                 LinearLayout body = new LinearLayout(this);
                 body.setOrientation(LinearLayout.VERTICAL);
-                body.setPadding(dp(8), dp(6), dp(8), dp(6));
+                body.setPadding(dp(9), dp(7), dp(9), dp(7));
 
                 String displayName = record.name == null || record.name.trim().isEmpty()
                         ? ModelCatalog.PRIMARY_MODEL : record.name.trim();
                 String room = record.room == null || record.room.trim().isEmpty()
                         ? getString(R.string.room_unassigned) : record.room.trim();
 
+                LinearLayout titleRow = new LinearLayout(this);
+                titleRow.setOrientation(LinearLayout.HORIZONTAL);
+                titleRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+                android.widget.ImageView stripIcon = new android.widget.ImageView(this);
+                stripIcon.setImageResource(R.drawable.ic_nav_strip);
+                stripIcon.setImageTintList(ColorStateList.valueOf(getColor(selected
+                        ? R.color.fg_blue_bright
+                        : connected ? R.color.fg_neon_green : R.color.fg_metal_silver)));
+                LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(22), dp(22));
+                iconParams.setMarginEnd(dp(6));
+                titleRow.addView(stripIcon, iconParams);
+
                 TextView nameView = new TextView(this);
                 nameView.setText(displayName);
                 nameView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 nameView.setTextColor(getColor(R.color.fg_text));
-                nameView.setTextSize(12f);
+                nameView.setTextSize(13f);
                 nameView.setTypeface(nameView.getTypeface(), android.graphics.Typeface.BOLD);
                 nameView.setMaxLines(1);
                 nameView.setEllipsize(TextUtils.TruncateAt.END);
-                body.addView(nameView);
+                titleRow.addView(nameView, new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+                if (selected) {
+                    TextView selectedMark = new TextView(this);
+                    selectedMark.setText("✓");
+                    selectedMark.setTextColor(getColor(R.color.fg_blue_bright));
+                    selectedMark.setTextSize(16f);
+                    selectedMark.setTypeface(selectedMark.getTypeface(),
+                            android.graphics.Typeface.BOLD);
+                    selectedMark.setPaddingRelative(dp(4), 0, 0, 0);
+                    titleRow.addView(selectedMark);
+                }
+                body.addView(titleRow);
 
                 LinearLayout metaRow = new LinearLayout(this);
                 metaRow.setOrientation(LinearLayout.HORIZONTAL);
                 metaRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                metaRow.setPadding(0, dp(2), 0, 0);
+                metaRow.setPadding(0, dp(3), 0, 0);
 
                 TextView roomView = new TextView(this);
                 roomView.setText(room);
                 roomView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 roomView.setTextColor(getColor(R.color.fg_text_secondary));
-                roomView.setTextSize(9f);
+                roomView.setTextSize(9.5f);
                 roomView.setMaxLines(1);
                 roomView.setEllipsize(TextUtils.TruncateAt.END);
                 metaRow.addView(roomView, new LinearLayout.LayoutParams(
@@ -1712,8 +1773,9 @@ public class MainActivity extends AppCompatActivity {
                 TextView statusView = new TextView(this);
                 statusView.setText(connected ? R.string.fleet_online : R.string.fleet_offline);
                 statusView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
-                statusView.setTextColor(getColor(connected ? R.color.fg_green : R.color.fg_red));
-                statusView.setTextSize(9f);
+                statusView.setTextColor(getColor(connected
+                        ? R.color.fg_neon_green : R.color.fg_silver_dark));
+                statusView.setTextSize(9.5f);
                 statusView.setTypeface(statusView.getTypeface(), android.graphics.Typeface.BOLD);
                 statusView.setMaxLines(1);
                 statusView.setPaddingRelative(dp(3), 0, 0, 0);
@@ -1724,11 +1786,23 @@ public class MainActivity extends AppCompatActivity {
                 macView.setText(getString(R.string.device_mac_format, record.mac));
                 macView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
                 macView.setTextColor(getColor(R.color.fg_silver_dark));
-                macView.setTextSize(7.5f);
+                macView.setTextSize(8f);
                 macView.setMaxLines(1);
                 macView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
                 macView.setPadding(0, dp(2), 0, 0);
                 body.addView(macView);
+
+                if (selected) {
+                    TextView selectedView = new TextView(this);
+                    selectedView.setText(R.string.device_selected_current);
+                    selectedView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+                    selectedView.setTextColor(getColor(R.color.fg_blue_bright));
+                    selectedView.setTextSize(8.5f);
+                    selectedView.setTypeface(selectedView.getTypeface(),
+                            android.graphics.Typeface.BOLD);
+                    selectedView.setPadding(0, dp(2), 0, 0);
+                    body.addView(selectedView);
+                }
 
                 card.setContentDescription(displayName + ", " + room + ", "
                         + getString(connected ? R.string.fleet_online : R.string.fleet_offline));
@@ -1739,7 +1813,6 @@ public class MainActivity extends AppCompatActivity {
                 });
                 row.addView(card);
             }
-
             devicesGrid.addView(row);
         }
 
@@ -1750,12 +1823,12 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 devicesPageSummary.setText(getString(R.string.devices_page_summary, shown, online));
                 devicesPageSummary.setTextColor(getColor(online > 0
-                        ? R.color.fg_green : R.color.fg_silver_dark));
+                        ? R.color.fg_neon_green : R.color.fg_silver_dark));
             }
         }
     }
 
-        private int dp(int value) {
+    private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
@@ -1780,9 +1853,21 @@ public class MainActivity extends AppCompatActivity {
     private void selectFleetDevice(String mac) {
         String key = FleetStore.normalizeMac(mac);
         if (key.isEmpty()) return;
+
         activeMac = key;
         fleetStore.select(key);
         migrateLegacyLabelsIfNeeded(key);
+
+        applyingDeviceState = true;
+        try {
+            clearTelemetryUi();
+            for (MaterialButton outletSwitch : outletSwitches) {
+                if (outletSwitch != null) outletSwitch.setChecked(false);
+            }
+        } finally {
+            applyingDeviceState = false;
+        }
+
         ControllerHub.DeviceState state = controllerHub.state(key);
         activeFirmwareVersion = state == null ? null : state.firmwareVersion;
         applyDeviceNames();
@@ -1815,12 +1900,12 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             setOutletControlsEnabled(false);
-            clearTelemetryUi();
             deviceState.setText(R.string.controller_disconnected);
-            deviceState.setTextColor(getColor(R.color.fg_red));
+            deviceState.setTextColor(getColor(R.color.fg_silver));
         }
         updateFleetStatus();
         refreshFleetOverviewAndList();
+        refreshDeviceCards();
         refreshUsbDiscoveryStatus();
         refreshScenes();
         refreshHistory();
@@ -2469,100 +2554,156 @@ public class MainActivity extends AppCompatActivity {
     private void configureCloudAccount() {
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
 
-        if (CloudRelayManager.CLOUD_ON_HOLD) {
-            // Migration guard: an older build may have left cloud sync enabled.
-            // Force it off without touching LAN/ZeroTier endpoint credentials.
-            prefs.edit()
-                    .putBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, false)
-                    .apply();
+        // VPS is an optional path. LAN/Router/ZeroTier remain fully independent.
+        // Self-service account creation is staged in the app but intentionally locked
+        // until the public VPS/direct-MTTL test gate is completed.
+        cloudEmailInput.setVisibility(View.GONE);
+        cloudRegisterButton.setVisibility(View.VISIBLE);
+        cloudRegisterButton.setEnabled(VpsFeatureFlags.SELF_SERVICE_ACCOUNT_ENABLED);
+        cloudRegisterButton.setText(VpsFeatureFlags.SELF_SERVICE_ACCOUNT_ENABLED
+                ? R.string.cloud_create_account
+                : R.string.cloud_create_account_locked);
+        cloudPasswordInput.setVisibility(View.VISIBLE);
+        cloudFixedServerText.setVisibility(View.VISIBLE);
+        cloudFixedServerText.setText(CloudRelayManager.FIXED_VPS_ENDPOINT);
+        cloudLoginButton.setVisibility(View.VISIBLE);
+        cloudSyncSwitch.setVisibility(View.VISIBLE);
+        cloudLoginButton.setText(R.string.cloud_connect_vps_pilot);
 
-            cloudSyncSwitch.setChecked(false);
-            cloudSyncSwitch.setEnabled(false);
-            cloudEndpointInput.setVisibility(View.GONE);
-            cloudEmailInput.setVisibility(View.GONE);
-            cloudPasswordInput.setVisibility(View.GONE);
-            cloudRegisterButton.setVisibility(View.GONE);
-            cloudLoginButton.setVisibility(View.GONE);
-            cloudSyncSwitch.setVisibility(View.GONE);
-            cloudStatus.setText(R.string.cloud_status_on_hold);
-            return;
+        String phoneFingerprint = VpsDeviceIdentity.fingerprint(this);
+        cloudFingerprintText.setText(phoneFingerprint);
+        copyCloudFingerprintButton.setOnClickListener(v -> copySensitiveText(
+                cloudFingerprintText, "FG Link phone fingerprint",
+                R.string.cloud_fingerprint_copied));
+
+        String savedToken = prefs.getString(CloudRelayManager.PREF_VPS_API_TOKEN, "");
+        if ((savedToken == null || savedToken.trim().isEmpty())
+                && prefs.getBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, false)) {
+            String legacyToken = prefs.getString(PREF_REMOTE_TOKEN, "");
+            if (legacyToken != null && !legacyToken.trim().isEmpty()) {
+                savedToken = legacyToken.trim();
+                prefs.edit()
+                        .putString(CloudRelayManager.PREF_VPS_API_TOKEN, savedToken)
+                        .apply();
+            }
         }
 
-        cloudEndpointInput.setText(prefs.getString(PREF_REMOTE_ENDPOINT, ""));
+        cloudPasswordInput.setText(savedToken == null ? "" : savedToken);
         cloudSyncSwitch.setChecked(
                 prefs.getBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, false));
-        String savedToken = prefs.getString(PREF_REMOTE_TOKEN, "");
-        cloudStatus.setText(savedToken == null || savedToken.isEmpty()
-                ? R.string.cloud_status_signed_out : R.string.cloud_status_ready);
 
-        cloudRegisterButton.setOnClickListener(v -> authenticateCloud(true));
-        cloudLoginButton.setOnClickListener(v -> authenticateCloud(false));
+        if (savedToken == null || savedToken.trim().isEmpty()) {
+            cloudStatus.setText(R.string.cloud_status_signed_out);
+        } else {
+            String lastStatus = prefs.getString(CloudRelayManager.PREF_CLOUD_LAST_STATUS, "");
+            cloudStatus.setText(lastStatus != null && lastStatus.startsWith("error:")
+                    ? getString(R.string.cloud_status_failed, lastStatus.substring(6))
+                    : getString(R.string.cloud_status_ready));
+        }
+
+        cloudRegisterButton.setOnClickListener(v -> createVpsAccount());
+        cloudLoginButton.setOnClickListener(v -> connectVpsAccount());
         cloudSyncSwitch.setOnCheckedChangeListener((button, checked) -> {
-            String endpoint = textOf(cloudEndpointInput);
-            String token = getSharedPreferences(PREFS, MODE_PRIVATE)
-                    .getString(PREF_REMOTE_TOKEN, "");
-            if (checked && (endpoint.isEmpty() || token == null || token.isEmpty())) {
+            SharedPreferences current = getSharedPreferences(PREFS, MODE_PRIVATE);
+            String token = current.getString(CloudRelayManager.PREF_VPS_API_TOKEN, "");
+            if (checked && (token == null || token.trim().isEmpty())) {
                 cloudStatus.setText(R.string.cloud_sync_requires_login);
                 button.setChecked(false);
                 return;
             }
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            current.edit()
                     .putBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, checked)
-                    .putString(PREF_REMOTE_ENDPOINT, endpoint)
                     .apply();
             cloudStatus.setText(checked
                     ? R.string.cloud_status_ready : R.string.cloud_status_signed_out);
         });
     }
 
-    private void authenticateCloud(boolean createAccount) {
-        String endpoint = textOf(cloudEndpointInput);
-        String email = textOf(cloudEmailInput);
-        String password = textOf(cloudPasswordInput);
-        if (endpoint.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            cloudStatus.setText(R.string.cloud_status_missing);
+    private void createVpsAccount() {
+        if (!VpsFeatureFlags.SELF_SERVICE_ACCOUNT_ENABLED) {
+            cloudStatus.setText(R.string.cloud_self_registration_locked_status);
             return;
         }
 
         cloudRegisterButton.setEnabled(false);
         cloudLoginButton.setEnabled(false);
+        cloudSyncSwitch.setEnabled(false);
+        cloudStatus.setText(R.string.cloud_self_registration_creating);
+        commandWorker.execute(() -> {
+            try {
+                String fingerprint = VpsDeviceIdentity.fingerprint(this);
+                CloudApiClient api = new CloudApiClient(CloudRelayManager.FIXED_VPS_ENDPOINT);
+                CloudApiClient.SelfRegistration registration = api.selfRegister(fingerprint);
+                if (registration.apiToken == null || registration.apiToken.trim().isEmpty()) {
+                    throw new IOException("VPS did not return an API token");
+                }
+
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putString(CloudRelayManager.PREF_VPS_API_TOKEN, registration.apiToken)
+                        .putBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, true)
+                        .putString(CloudRelayManager.PREF_CLOUD_LAST_STATUS, "ready")
+                        .apply();
+
+                runOnUiThread(() -> {
+                    cloudPasswordInput.setText(registration.apiToken);
+                    cloudSyncSwitch.setChecked(true);
+                    cloudSyncSwitch.setEnabled(true);
+                    cloudLoginButton.setEnabled(true);
+                    cloudRegisterButton.setEnabled(VpsFeatureFlags.SELF_SERVICE_ACCOUNT_ENABLED);
+                    cloudStatus.setText(R.string.cloud_self_registration_ready);
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    cloudSyncSwitch.setEnabled(true);
+                    cloudLoginButton.setEnabled(true);
+                    cloudRegisterButton.setEnabled(VpsFeatureFlags.SELF_SERVICE_ACCOUNT_ENABLED);
+                    cloudStatus.setText(getString(
+                            R.string.cloud_status_failed, safeMessage(error)));
+                });
+            }
+        });
+    }
+
+    private void connectVpsAccount() {
+        String endpoint = CloudRelayManager.FIXED_VPS_ENDPOINT;
+        String apiToken = textOf(cloudPasswordInput);
+        if (apiToken.isEmpty()) {
+            cloudStatus.setText(R.string.cloud_status_missing);
+            return;
+        }
+
+        cloudLoginButton.setEnabled(false);
+        cloudSyncSwitch.setEnabled(false);
         cloudStatus.setText(R.string.cloud_status_authenticating);
         commandWorker.execute(() -> {
             try {
+                EndpointSecurity.validateRemoteEndpoint(endpoint);
+                String fingerprint = VpsDeviceIdentity.fingerprint(this);
                 CloudApiClient api = new CloudApiClient(endpoint);
-                CloudApiClient.AuthSession session = createAccount
-                        ? api.register(email, password) : api.login(email, password);
-                if (session.accessToken.isEmpty()) {
-                    throw new IOException("Cloud login returned an empty access token");
-                }
+                api.bindPhone(apiToken, fingerprint);
 
-                SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-                String previousEndpoint = prefs.getString(PREF_REMOTE_ENDPOINT, "");
-                SharedPreferences.Editor editor = prefs.edit()
-                        .putString(PREF_REMOTE_ENDPOINT, endpoint)
-                        .putString(PREF_REMOTE_TOKEN, session.accessToken);
-                if (previousEndpoint != null && !previousEndpoint.isEmpty()
-                        && !previousEndpoint.equals(endpoint)) {
-                    editor.remove(CloudRelayManager.PREF_CLOUD_CONTROLLER_ID)
-                            .remove(CloudRelayManager.PREF_CLOUD_CONTROLLER_KEY)
-                            .remove(CloudRelayManager.PREF_CLOUD_REGISTERED_MACS);
-                }
-                editor.apply();
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                        .putString(CloudRelayManager.PREF_VPS_API_TOKEN, apiToken)
+                        .putBoolean(CloudRelayManager.PREF_CLOUD_SYNC_ENABLED, true)
+                        .putString(CloudRelayManager.PREF_CLOUD_LAST_STATUS, "ready")
+                        .apply();
+
+                Intent controllerIntent = new Intent(this, MttlControllerService.class);
+                controllerIntent.setAction(MttlControllerService.ACTION_START);
+                ContextCompat.startForegroundService(this, controllerIntent);
 
                 runOnUiThread(() -> {
-                    remoteEndpointInput.setText(endpoint);
-                    remoteTokenInput.setText(session.accessToken);
-                    cloudPasswordInput.setText("");
-                    cloudStatus.setText(R.string.cloud_status_ready);
-                    cloudRegisterButton.setEnabled(true);
+                    cloudSyncSwitch.setChecked(true);
+                    cloudSyncSwitch.setEnabled(true);
                     cloudLoginButton.setEnabled(true);
+                    cloudStatus.setText(R.string.cloud_status_ready);
                 });
-            } catch (IOException error) {
+            } catch (IOException | RuntimeException error) {
                 runOnUiThread(() -> {
+                    cloudSyncSwitch.setEnabled(true);
+                    cloudLoginButton.setEnabled(true);
                     cloudStatus.setText(getString(
                             R.string.cloud_status_failed, safeMessage(error)));
-                    cloudRegisterButton.setEnabled(true);
-                    cloudLoginButton.setEnabled(true);
                 });
             }
         });
@@ -2834,6 +2975,18 @@ public class MainActivity extends AppCompatActivity {
     private void configureAboutLinks() {
         fgMachinesFacebookButton.setOnClickListener(v -> openExternalUrl(FG_MACHINES_FACEBOOK_URL));
         alaaMohamedFacebookButton.setOnClickListener(v -> openExternalUrl(ALAA_MOHAMED_FACEBOOK_URL));
+        fgMachinesWebsiteButton.setOnClickListener(v -> openExternalUrl(FG_MACHINES_WEBSITE_URL));
+        fgMachinesEmailButton.setOnClickListener(v -> openEmailAddress());
+    }
+
+    private void openEmailAddress() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse(FG_MACHINES_EMAIL_URI));
+            startActivity(intent);
+        } catch (RuntimeException error) {
+            Snackbar.make(fgMachinesEmailButton,
+                    getString(R.string.open_link_failed), Snackbar.LENGTH_LONG).show();
+        }
     }
 
     private void openExternalUrl(String url) {
@@ -2843,6 +2996,74 @@ public class MainActivity extends AppCompatActivity {
         } catch (RuntimeException error) {
             Snackbar.make(alaaMohamedFacebookButton,
                     getString(R.string.open_link_failed), Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    private void configureControllerRoute() {
+        if (vpsDirectSwitch == null || vpsDirectStatus == null) return;
+
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        boolean previouslySelected = prefs.getBoolean(PREF_VPS_DIRECT_SELECTED, false);
+        boolean canUseDirectVps = VpsFeatureFlags.PUBLIC_VPS_DIRECT_ENABLED;
+
+        vpsDirectSwitch.setChecked(canUseDirectVps && previouslySelected);
+        vpsDirectSwitch.setEnabled(canUseDirectVps);
+        vpsDirectStatus.setText(canUseDirectVps
+                ? R.string.controller_route_vps_ready
+                : R.string.controller_route_vps_locked);
+        vpsDirectStatus.setTextColor(getColor(canUseDirectVps
+                ? R.color.fg_green : R.color.fg_warning));
+
+        vpsDirectSwitch.setOnCheckedChangeListener((button, checked) -> {
+            if (checked && !VpsFeatureFlags.PUBLIC_VPS_DIRECT_ENABLED) {
+                button.setChecked(false);
+                vpsDirectStatus.setText(R.string.controller_route_vps_locked);
+                return;
+            }
+
+            prefs.edit().putBoolean(PREF_VPS_DIRECT_SELECTED, checked).apply();
+            if (!checked) {
+                String localController = prefs.getString(PREF_HOTSPOT_IP, "");
+                if (localController != null && !localController.trim().isEmpty()) {
+                    controllerIpInput.setText(localController.trim());
+                }
+                vpsDirectStatus.setText(R.string.controller_route_local_restored);
+                vpsDirectStatus.setTextColor(getColor(R.color.fg_green));
+                updateSetupReadiness();
+                return;
+            }
+
+            button.setEnabled(false);
+            vpsDirectStatus.setText(R.string.controller_route_vps_resolving);
+            vpsDirectStatus.setTextColor(getColor(R.color.fg_warning));
+            commandWorker.execute(() -> {
+                try {
+                    String publicIpv4 = VpsFeatureFlags.resolveDirectControllerIpv4();
+                    runOnUiThread(() -> {
+                        controllerIpInput.setText(publicIpv4);
+                        vpsDirectStatus.setText(getString(
+                                R.string.controller_route_vps_resolved, publicIpv4));
+                        vpsDirectStatus.setTextColor(getColor(R.color.fg_green));
+                        vpsDirectSwitch.setEnabled(true);
+                        updateSetupReadiness();
+                    });
+                } catch (IOException error) {
+                    runOnUiThread(() -> {
+                        vpsDirectSwitch.setChecked(false);
+                        vpsDirectSwitch.setEnabled(true);
+                        prefs.edit().putBoolean(PREF_VPS_DIRECT_SELECTED, false).apply();
+                        vpsDirectStatus.setText(getString(
+                                R.string.controller_route_vps_resolve_failed, safeMessage(error)));
+                        vpsDirectStatus.setTextColor(getColor(R.color.fg_warning));
+                    });
+                }
+            });
+        });
+
+        if (vpsDirectSwitch.isChecked()) {
+            // Resolve before the user joins TONLY_TAP/ONLY_TAP, while Internet is still available.
+            vpsDirectSwitch.setChecked(false);
+            vpsDirectSwitch.setChecked(true);
         }
     }
 
@@ -3273,11 +3494,12 @@ public class MainActivity extends AppCompatActivity {
             outletSwitches[i].addOnCheckedChangeListener((button, checked) -> {
                 updateOutletCardState(index, checked);
                 if (applyingDeviceState || !button.isEnabled()) return;
-                String mac = activeMac;
-                if (mac == null || controllerHub == null) return;
+                final String targetMac = FleetStore.normalizeMac(activeMac);
+                if (targetMac.isEmpty() || controllerHub == null
+                        || !controllerHub.isConnected(targetMac)) return;
                 commandWorker.execute(() -> {
                     try {
-                        smartHomePlatform.setSwitch(mac, outlet, checked);
+                        smartHomePlatform.setSwitch(targetMac, outlet, checked);
                     } catch (IOException error) {
                         runOnUiThread(() -> Snackbar.make(scanButton,
                                 getString(R.string.command_failed, safeMessage(error)), Snackbar.LENGTH_LONG).show());
@@ -3346,35 +3568,32 @@ public class MainActivity extends AppCompatActivity {
 
             @Override public void onDeviceDisconnected(String mac) {
                 String key = FleetStore.normalizeMac(mac);
-                boolean selectedDisconnected = key.equalsIgnoreCase(activeMac == null ? "" : activeMac);
-                if (selectedDisconnected) {
-                    List<ControllerHub.DeviceState> connected = controllerHub.connectedStates();
-                    if (connected.isEmpty()) {
-                        activeMac = null;
-                        activeFirmwareVersion = null;
-                    } else {
-                        activeMac = connected.get(0).mac;
-                        activeFirmwareVersion = connected.get(0).firmwareVersion;
-                        fleetStore.select(activeMac);
-                    }
-                }
+                boolean selectedDisconnected = key.equalsIgnoreCase(
+                        activeMac == null ? "" : activeMac);
+                if (selectedDisconnected) activeFirmwareVersion = null;
+
                 runOnUiThread(() -> {
                     refreshFleetUi();
-                    if (activeMac == null) {
+                    if (selectedDisconnected) {
                         setOutletControlsEnabled(false);
+                        applyingDeviceState = true;
+                        try {
+                            for (MaterialButton outletSwitch : outletSwitches) {
+                                if (outletSwitch != null) outletSwitch.setChecked(false);
+                            }
+                        } finally {
+                            applyingDeviceState = false;
+                        }
                         clearTelemetryUi();
-                        clearDeviceNamingFields();
                         deviceState.setText(R.string.controller_disconnected);
-            deviceState.setTextColor(getColor(R.color.fg_red));
-                        discoveryDetail.setText(R.string.locked);
-                        refreshFleetOverviewAndList();
+                        deviceState.setTextColor(getColor(R.color.fg_silver));
+                        refreshDeviceCards();
                         loadAwayModeForActiveDevice();
                         refreshHistory();
                         refreshRuntimeSummary();
-                    } else if (selectedDisconnected) {
-                        selectFleetDevice(activeMac);
                     } else {
                         updateFleetStatus();
+                        refreshDeviceCards();
                     }
                 });
             }

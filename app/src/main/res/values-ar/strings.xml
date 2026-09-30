@@ -90,7 +90,7 @@
     <string name="settings_note">يتم تطبيق تغيير اللغة فورًا. إعداد المشترك والتحكم به محليان ولا يحتاجان إلى الاشتراك الكوري.</string>
     <string name="about_title">عن المطور</string>
     <string name="about_line">بسم الله الرحمن الرحيم</string>
-    <string name="about_body">تم تطوير البرنامج بواسطة علاء الدين محمد وهذا البرنامج هو مجاني بالكامل لوجه الله</string>
+    <string name="about_body">تم تطوير البرنامج بواسطة FG Machines. المطور الرئيسي: علاء محمد. وهذا البرنامج مجاني بالكامل لوجه الله.</string>
     <string name="supported_models_title">التوافق</string>
     <string name="supported_models_body">العائلة الأساسية المتحقق منها: MTTL-W01. مراجعات الشهادة المعروفة HU04139-17002A/B/C/D/E. يتعرف التطبيق على TONLY_TAP_* و ONLY_TAP_* ويتحقق من البروتوكول قبل تفعيل مفاتيح المخارج.</string>
     <string name="setup_method_title">اختر طريقة الإعداد</string>
@@ -111,6 +111,8 @@
     <string name="about_social_note">الحساب الشخصي والصفحة التجارية</string>
     <string name="fg_machines_facebook">رابط الصفحة التجارية</string>
     <string name="alaa_mohamed_facebook">رابط الحساب الشخصي</string>
+    <string name="fg_machines_website">الموقع الرسمي · fgmachines.org</string>
+    <string name="fg_machines_email">البريد الإلكتروني · info@fgmachines.org</string>
     <string name="open_link_failed">تعذر فتح الرابط على هذا الجهاز.</string>
     <string name="wizard_assistant_title">مساعد الإعداد</string>
     <string name="wizard_local_badge">محلي</string>
@@ -528,21 +530,25 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="event_voice_command">أمر صوتي</string>
 
 
-    <string name="cloud_account_title">FG Cloud — متوقف مؤقتًا</string>
-    <string name="cloud_account_note">ميزة FG Cloud موجودة داخل التطبيق وجاهزة للمستقبل، لكنها متوقفة عمدًا حتى إطلاق الخادم لاحقًا. الشبكة المحلية هي الأساس وZeroTier يوفر التحكم البعيد بدون VPS.</string>
-    <string name="cloud_endpoint_hint">عنوان VPS الآمن HTTPS</string>
+    <string name="cloud_account_title">خادم FG Link VPS — إصدار 1.6.13</string>
+    <string name="cloud_account_note">الـVPS مسار اختياري ومكمل، مش بديل عن الراوتر أو LAN أو ZeroTier. إنشاء حساب VPS من داخل البرنامج متجهز لكنه معطل مؤقتًا لحد انتهاء الاختبارات. لو معاك API اختبار تقدر توصله بالخادم الثابت.</string>
+    <string name="cloud_fingerprint_label">بصمة الهاتف</string>
+    <string name="cloud_copy_fingerprint">نسخ بصمة الهاتف</string>
+    <string name="cloud_fingerprint_instruction">البصمة دي بتعرّف نسخة البرنامج على الموبايل. أثناء الاختبارات يمكن للإدارة إصدار API تجريبي، وبعد فتح التسجيل العام هيتم إنشاء الحساب من داخل البرنامج مباشرة.</string>
+    <string name="cloud_fingerprint_copied">تم نسخ بصمة الهاتف</string>
+    <string name="cloud_endpoint_hint">خادم FG Link الثابت</string>\n    <string name="cloud_fixed_server_label">عنوان الخادم الثابت</string>\n    <string name="cloud_fixed_server_value">https://link.fgmachines.org</string>
     <string name="cloud_email_hint">البريد الإلكتروني لحساب السحابة</string>
-    <string name="cloud_password_hint">كلمة مرور حساب السحابة</string>
+    <string name="cloud_password_hint">FG Link API</string>
     <string name="cloud_register">إنشاء حساب</string>
     <string name="cloud_login">تسجيل الدخول</string>
-    <string name="cloud_sync_enable">تفعيل جسر FG Cloud</string>
-    <string name="cloud_status_signed_out">FG Cloud غير نشط. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
-    <string name="cloud_status_on_hold">FG Cloud غير نشط. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
-    <string name="cloud_status_missing">أدخل عنوان VPS عبر HTTPS والبريد وكلمة المرور.</string>
-    <string name="cloud_status_authenticating">جارٍ الاتصال بالسحابة…</string>
-    <string name="cloud_status_ready">تم حفظ حساب السحابة. فعّل الجسر على هاتف التحكم عندما تكون جاهزًا.</string>
-    <string name="cloud_status_failed">خطأ في السحابة: %1$s</string>
-    <string name="cloud_sync_requires_login">سجّل الدخول أولًا ثم فعّل جسر التحكم.</string>
+    <string name="cloud_sync_enable">تفعيل مزامنة الحالة مع VPS</string>
+    <string name="cloud_status_signed_out">لم يتم ربط VPS بعد. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
+    <string name="cloud_status_on_hold">لم يتم ربط VPS بعد. الشبكة المحلية وZeroTier يعملان بشكل طبيعي.</string>
+    <string name="cloud_status_missing">أدخل API الخاص بحسابك.</string>
+    <string name="cloud_status_authenticating">جارٍ ربط هذا الهاتف بحساب VPS…</string>
+    <string name="cloud_status_ready">تم ربط VPS. هذا الهاتف مربوط بحساب FG Link واحد ومزامنة الحالة مفعلة.</string>
+    <string name="cloud_status_failed">خطأ VPS: %1$s</string>
+    <string name="cloud_sync_requires_login">أدخل API الخاص بحسابك أولًا.</string>
 
 
     <string name="picker_apply">تطبيق</string>
@@ -702,11 +708,42 @@ Dawon DNS MTD-01 / PM-M130-ZW · عائلة Z-Wave معروفة وتحتاج و�
     <string name="email_alerts_enabled">تم تفعيل تنبيهات البريد الإلكتروني</string>
     <string name="email_alerts_disabled">تم تعطيل تنبيهات البريد الإلكتروني</string>
 
-    <string name="nav_devices">الأجهزة</string>
-    <string name="devices_title">الأجهزة</string>
+    <string name="nav_devices">أجهزتي</string>
+    <string name="devices_title">أجهزتي</string>
     <string name="devices_empty">لا توجد أجهزة مسجلة حتى الآن.</string>
     <string name="devices_hint">اضغط على بطاقة الجهاز لاختياره وفتح صفحة المشترك الخاصة به.</string>
     <string name="devices_limit_note">يظهر هنا حتى 10 أجهزة مسجلة.</string>
     <string name="devices_page_summary">%1$d أجهزة · %2$d متصل</string>
+    <string name="device_selected_current">✓ المحدد حاليًا</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">منظومة المنزل الذكي</string>
+    <string name="ecosystem_note">طبقة ربط واحدة لـ Home Assistant وAlexa وGoogle Home وMatter بدون تغيير مسار تحكم MTTL الموثق.</string>
+    <string name="ecosystem_summary_waiting">جارٍ فحص مسارات الربط…</string>
+    <string name="ecosystem_summary_format">%1$d من %2$d مسارات جاهزة · جسر Matter محجوز</string>
+    <string name="ecosystem_home_assistant">Home Assistant · جسر محلي جاهز</string>
+    <string name="ecosystem_alexa">Amazon Alexa · جاهزة عبر Home Assistant</string>
+    <string name="ecosystem_google_home">Google Home · جاهز عبر Home Assistant</string>
+    <string name="ecosystem_matter">Matter · البنية محجوزة ولم يتم تفعيلها بعد</string>
+    <string name="ecosystem_setup_button">إعداد جسر Home Assistant</string>
+    <string name="ecosystem_setup_hint">أنشئ رمز Home Assistant من هنا، ثم اربط Home Assistant مع Alexa أو Google Home.</string>
+    <string name="cloud_connect_vps">ربط VPS</string>
+
+    <!-- FG Link 1.6.14: الـVPS مسار اختياري ولا يستبدل LAN/ZeroTier. -->
+    <string name="controller_route_title">مسار وحدة التحكم</string>
+    <string name="controller_route_local_active">الوضع المحلي / الراوتر / ZeroTier يظل شغال ومستقل تمامًا عن FG Link VPS.</string>
+    <string name="controller_route_vps_direct">FG Link VPS Direct — بوابة سحابية اختيارية</string>
+    <string name="controller_route_vps_locked">وضع VPS Direct متجهز داخل البرنامج لكنه مقفول للعامة لحد ما نخلص اختبارات الاتصال المباشر بالمشترك. استخدم الراوتر / الهاتف / ZeroTier عادي.</string>
+    <string name="controller_route_vps_ready">اختبار VPS Direct متاح. عند اختياره البرنامج هيجيب Public IPv4 الخاص بالخادم قبل الاتصال بشبكة إعداد المشترك.</string>
+    <string name="controller_route_local_restored">رجعنا للمسار المحلي. إعدادات LAN / الراوتر / ZeroTier مازالت محفوظة ومتاحة.</string>
+    <string name="controller_route_vps_resolving">بنجيب Public IPv4 الخاص بـ FG Link VPS قبل ما تتصل بشبكة إعداد المشترك…</string>
+    <string name="controller_route_vps_resolved">تم تجهيز عنوان VPS Direct: %1$s. المسار ده مستقل عن إعدادات Local / ZeroTier المحفوظة.</string>
+    <string name="controller_route_vps_resolve_failed">تعذر تجهيز VPS Direct: %1$s</string>
+    <string name="cloud_create_account">إنشاء حساب VPS</string>
+    <string name="cloud_create_account_locked">إنشاء حساب VPS — بعد انتهاء الاختبارات</string>
+    <string name="cloud_connect_vps_pilot">توصيل API للاختبار</string>
+    <string name="cloud_self_registration_locked_status">إنشاء حساب VPS من داخل البرنامج متجهز لكنه معطل مؤقتًا لحد انتهاء الاختبارات. التحكم المحلي وZeroTier مش هيتأثروا.</string>
+    <string name="cloud_self_registration_creating">جاري إنشاء حساب VPS وربط الموبايل…</string>
+    <string name="cloud_self_registration_ready">تم إنشاء حساب VPS وربطه. التحكم المحلي وZeroTier يفضلوا موجودين كمسار مستقل واحتياطي.</string>
+
 </resources>

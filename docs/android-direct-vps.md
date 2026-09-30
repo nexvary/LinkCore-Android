@@ -131,3 +131,7 @@ to a test customer and verify their own login; only then add other hardware.
 Direct VPS cards now have a speech-recognition button (Arabic/English). It selects one explicit outlet ON/OFF command, displays a confirmation dialog, then uses the existing authenticated command path and real device confirmation. Unsupported/ambiguous/negated commands are not sent. Recognition depends on an installed Android speech provider and may need Internet. This version adds no background listening.
 
 The Home Assistant custom integration now supports customer Direct VPS credentials as well as the existing local phone token. Installation, Assist exposure, and optional Google Home linking instructions are in `home_assistant/README.md`. This is not a published Google cloud service; Google household setup remains required.
+
+## FG Link 2.1 unified release
+
+The unified release retains the official `com.fgmachines.rck` package and release certificate, imports the latest Android 1.6.15 code and adds the Direct VPS screen/voice adapter. Local settings, Android controller modes, and existing voice control remain. Main launcher now selects local or Direct VPS explicitly. The supplied FG Link icon is used in launcher and page headers. Self-service signup remains disabled; owner-issued customer accounts and existing owner login are supported. No VPS upgrade is required for an already installed Direct users extension. Google Home account linking and physical voice verification remain external setup steps.

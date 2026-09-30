@@ -18,9 +18,14 @@ android {
         applicationId 'com.fgmachines.rck'
         minSdk 26
         targetSdk 35
-        versionCode 36
-        versionName '1.6.8'
+        versionCode 45
+        versionName '2.1'
         manifestPlaceholders = [appLabel: 'FG Link']
+        buildConfigField 'boolean', 'RELEASE_INTEGRITY_ENFORCED', 'false'
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     signingConfigs {
@@ -40,33 +45,19 @@ android {
             versionNameSuffix '-debug'
             manifestPlaceholders = [appLabel: 'FG Link Debug']
         }
-        directVpsLab {
-            initWith debug
-            applicationIdSuffix '.directvpslab'
-            versionNameSuffix '-direct-vps'
-            matchingFallbacks = ['debug']
-            manifestPlaceholders = [appLabel: 'FG Link Direct VPS']
-        }
-        directVpsVoice {
-            initWith directVpsLab
-            applicationIdSuffix '.directvpsvoice'
-            versionNameSuffix '-direct-vps-voice'
-            matchingFallbacks = ['debug']
-            manifestPlaceholders = [appLabel: 'FG Link Voice']
-        }
         sidecar {
             initWith debug
-            applicationIdSuffix '.sidecar163'
+            applicationIdSuffix '.sidecar164'
             versionNameSuffix '-sidecar'
             matchingFallbacks = ['debug']
-            manifestPlaceholders = [appLabel: 'FG Link 1.6.6 Test']
+            manifestPlaceholders = [appLabel: 'FG Link 1.6.14 Test']
         }
         sidecarArm64 {
             initWith debug
-            applicationIdSuffix '.sidecar163arm64'
+            applicationIdSuffix '.sidecar164arm64'
             versionNameSuffix '-arm64-fast'
             matchingFallbacks = ['debug']
-            manifestPlaceholders = [appLabel: 'FG Link 1.6.6 Fast']
+            manifestPlaceholders = [appLabel: 'FG Link 1.6.14 Fast']
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -76,7 +67,12 @@ android {
         }
         release {
             manifestPlaceholders = [appLabel: 'FG Link']
-            minifyEnabled false
+            buildConfigField 'boolean', 'RELEASE_INTEGRITY_ENFORCED', 'true'
+            minifyEnabled true
+            shrinkResources true
+            debuggable false
+            jniDebuggable false
+            zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (stableSigningReady) {
                 signingConfig signingConfigs.stableRelease

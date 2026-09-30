@@ -1,6 +1,6 @@
 # FG Link — Home Assistant + voice control
 
-Custom integration 1.1.0. Choose **Direct VPS** or the existing **Android / LAN / ZeroTier** controller. Existing local configuration entries continue to work.
+Custom integration 2.1.0. Choose **Direct VPS** or the existing **Android / LAN / ZeroTier** controller. Existing local configuration entries continue to work.
 
 ## Install
 
@@ -16,7 +16,7 @@ Commands use explicit ON/OFF, enforce fresh permissions, require `confirmed`, an
 
 ## Voice inside FG Link Android
 
-Install **FG Link Voice 1.6.8** alongside the earlier Direct VPS lab version. This delivery uses a separate package (`com.fgmachines.rck.directvpsvoice`) because the previous transient debug signing key is no longer available; do not uninstall the working app. Production FG Link is unchanged. Sign in, then use the microphone button on the target device card:
+Install the signed **FG Link 2.1** update over the official FG Link app. It keeps the original package (`com.fgmachines.rck`) and release signing certificate. Sign in, then use the microphone button on the target device card:
 
 - Arabic: `شغّل المخرج الأول`, `اطفي المخرج الثاني`, `اقفل المخرج الرابع`.
 - English: `Turn on outlet one`, `Turn off outlet two`.

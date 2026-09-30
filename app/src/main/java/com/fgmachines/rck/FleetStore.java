@@ -20,6 +20,7 @@ public final class FleetStore {
     private static final String PREFIX_LAST_SEEN = "last_seen_";
     private static final String PREFIX_FW = "firmware_";
     private static final String PREFIX_OUTLET_NAME = "outlet_name_";
+    private static final String PREFIX_CLOUD_REF = "cloud_ref_";
 
     private final SharedPreferences prefs;
 
@@ -79,7 +80,8 @@ public final class FleetStore {
                 .remove(PREFIX_ROOM + key)
                 .remove(PREFIX_FW + key)
                 .remove(PREFIX_FIRST_SEEN + key)
-                .remove(PREFIX_LAST_SEEN + key);
+                .remove(PREFIX_LAST_SEEN + key)
+                .remove(PREFIX_CLOUD_REF + key);
         for (int outlet = 1; outlet <= 4; outlet++) {
             editor.remove(PREFIX_OUTLET_NAME + key + "_" + outlet);
         }
@@ -132,6 +134,28 @@ public final class FleetStore {
         java.util.TreeSet<String> rooms = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         for (DeviceRecord record : list()) if (!record.room.isEmpty()) rooms.add(record.room);
         return new ArrayList<>(rooms);
+    }
+
+    public synchronized String cloudRef(String mac) {
+        String key = normalizeMac(mac);
+        if (key.isEmpty()) return "";
+        String existing = prefs.getString(PREFIX_CLOUD_REF + key, "");
+        if (existing != null && existing.matches("[0-9a-fA-F]{32}")) {
+            return existing.toLowerCase(Locale.US);
+        }
+        String created = java.util.UUID.randomUUID().toString()
+                .replace("-", "").toLowerCase(Locale.US);
+        prefs.edit().putString(PREFIX_CLOUD_REF + key, created).apply();
+        return created;
+    }
+
+    public synchronized DeviceRecord findByCloudRef(String cloudRef) {
+        if (cloudRef == null || cloudRef.trim().isEmpty()) return null;
+        String target = cloudRef.trim();
+        for (DeviceRecord record : list()) {
+            if (target.equalsIgnoreCase(cloudRef(record.mac))) return record;
+        }
+        return null;
     }
 
     public static String normalizeMac(String mac) {

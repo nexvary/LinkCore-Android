@@ -43,8 +43,7 @@ public final class MttlControllerService extends Service implements MttlControll
     private static final String PREF_ALERTS_ENABLED = "alerts_enabled";
     private static final String PREF_ALERTS_QUIET_MIGRATION = "alerts_quiet_migration_v163_2";
     public static final String PREF_EMAIL_ALERTS_ENABLED = "email_alerts_enabled";
-    private static final String PREF_REMOTE_ENDPOINT = "remote_endpoint";
-    private static final String PREF_REMOTE_TOKEN = "remote_token";
+
     public static final String PREF_ALERT_POWER_W = "alert_power_w";
     public static final String PREF_ALERT_TEMP_C = "alert_temp_c";
     public static final String PREF_ALERT_DAILY_ENERGY_KWH = "alert_daily_energy_kwh";
@@ -380,13 +379,11 @@ public final class MttlControllerService extends Service implements MttlControll
     private void sendEmailAlertIfEnabled(String title, String body) {
         if (!emailAlertsEnabled()) return;
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        String endpoint = prefs.getString(PREF_REMOTE_ENDPOINT, "");
-        String token = prefs.getString(PREF_REMOTE_TOKEN, "");
-        if (endpoint == null || endpoint.trim().isEmpty()
-                || token == null || token.trim().isEmpty()) {
+        String token = prefs.getString(CloudRelayManager.PREF_VPS_API_TOKEN, "");
+        if (token == null || token.trim().isEmpty()) {
             return;
         }
-        final String targetEndpoint = endpoint.trim();
+        final String targetEndpoint = CloudRelayManager.FIXED_VPS_ENDPOINT;
         final String bearer = token.trim();
         final String subject = title == null ? "FG Machines Link alert" : title.trim();
         final String message = body == null ? "" : body.trim();

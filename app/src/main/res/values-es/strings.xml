@@ -528,21 +528,25 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="event_voice_command">Comando de voz</string>
 
 
-    <string name="cloud_account_title">FG Cloud — En espera</string>
-    <string name="cloud_account_note">FG Cloud ya está integrado en la aplicación, pero permanece desactivado hasta lanzar el servicio alojado. LAN sigue siendo el modo predeterminado y ZeroTier ofrece acceso remoto sin VPS.</string>
-    <string name="cloud_endpoint_hint">Dirección HTTPS del VPS</string>
+    <string name="cloud_account_title">FG Link VPS — 1.6.13</string>
+    <string name="cloud_account_note">La aplicación genera automáticamente la huella de este teléfono. Envíala a la administración de FG Link. La dirección del servidor ya está fija en la aplicación; solo debes introducir la API emitida para este teléfono.</string>
+    <string name="cloud_fingerprint_label">Huella del teléfono</string>
+    <string name="cloud_copy_fingerprint">COPIAR HUELLA DEL TELÉFONO</string>
+    <string name="cloud_fingerprint_instruction">Envía primero esta huella a la administración de FG Link. Después de crear tu API, pega únicamente la API abajo.</string>
+    <string name="cloud_fingerprint_copied">Huella del teléfono copiada</string>
+    <string name="cloud_endpoint_hint">VPS fijo de FG Link</string>\n    <string name="cloud_fixed_server_label">Servidor fijo</string>\n    <string name="cloud_fixed_server_value">https://link.fgmachines.org</string>
     <string name="cloud_email_hint">Correo de la cuenta cloud</string>
-    <string name="cloud_password_hint">Contraseña de la cuenta cloud</string>
+    <string name="cloud_password_hint">FG Link API token</string>
     <string name="cloud_register">Crear cuenta</string>
     <string name="cloud_login">Iniciar sesión</string>
-    <string name="cloud_sync_enable">Activar relé FG Cloud</string>
+    <string name="cloud_sync_enable">VPS status sync</string>
     <string name="cloud_status_signed_out">FG Cloud está inactivo. LAN y ZeroTier siguen disponibles.</string>
     <string name="cloud_status_on_hold">FG Cloud está inactivo. LAN y ZeroTier siguen disponibles.</string>
-    <string name="cloud_status_missing">Introduce la dirección HTTPS del VPS, correo y contraseña.</string>
-    <string name="cloud_status_authenticating">Conectando con la nube…</string>
-    <string name="cloud_status_ready">Cuenta cloud guardada. Activa el relé en el teléfono controlador cuando quieras.</string>
+    <string name="cloud_status_missing">Introduce la API de FG Link emitida para este teléfono.</string>
+    <string name="cloud_status_authenticating">Vinculando este teléfono con la API del VPS…</string>
+    <string name="cloud_status_ready">VPS conectado. Este teléfono está vinculado a la API de FG Link y la sincronización está activa.</string>
     <string name="cloud_status_failed">Error de nube: %1$s</string>
-    <string name="cloud_sync_requires_login">Inicia sesión primero y luego activa el relé controlador.</string>
+    <string name="cloud_sync_requires_login">Introduce primero la API de FG Link.</string>
 
 
     <string name="picker_apply">Aplicar</string>
@@ -700,11 +704,43 @@ Sobrecarga: %6$s · Sobretemperatura: %7$s · Evento: %8$s</string>
     <string name="email_alerts_enabled">Alertas por correo activadas</string>
     <string name="email_alerts_disabled">Alertas por correo desactivadas</string>
 
-    <string name="nav_devices">Dispositivos</string>
-    <string name="devices_title">Dispositivos</string>
+    <string name="nav_devices">Mis dispositivos</string>
+    <string name="devices_title">Mis dispositivos</string>
     <string name="devices_empty">Aún no hay dispositivos registrados.</string>
     <string name="devices_hint">Toca una tarjeta para seleccionar el dispositivo y abrir sus controles de suscriptor.</string>
     <string name="devices_limit_note">Aquí se muestran hasta 10 dispositivos registrados.</string>
     <string name="devices_page_summary">%1$d dispositivos · %2$d en línea</string>
+    <string name="device_selected_current">✓ Seleccionado ahora</string>
     <string name="device_mac_format">MAC · %1$s</string>
+
+    <string name="ecosystem_title">Ecosistemas de hogar inteligente</string>
+    <string name="ecosystem_note">Una sola capa de puente para Home Assistant, Alexa, Google Home y Matter sin cambiar la ruta MTTL verificada.</string>
+    <string name="ecosystem_summary_waiting">Comprobando rutas del ecosistema…</string>
+    <string name="ecosystem_summary_format">%1$d de %2$d rutas listas · puente Matter reservado</string>
+    <string name="ecosystem_home_assistant">Home Assistant · Puente local LISTO</string>
+    <string name="ecosystem_alexa">Amazon Alexa · LISTA mediante Home Assistant</string>
+    <string name="ecosystem_google_home">Google Home · LISTO mediante Home Assistant</string>
+    <string name="ecosystem_matter">Matter · Puente reservado / aún no habilitado</string>
+    <string name="ecosystem_setup_button">Configurar puente Home Assistant</string>
+    <string name="ecosystem_setup_hint">Crea aquí un token de Home Assistant y después conecta Home Assistant con Alexa o Google Home.</string>
+    <string name="cloud_connect_vps">Conectar VPS</string>
+    <string name="fg_machines_website">Sitio web oficial · fgmachines.org</string>
+    <string name="fg_machines_email">Correo electrónico · info@fgmachines.org</string>
+
+    <string name="controller_route_title">Ruta del controlador</string>
+    <string name="controller_route_local_active">Local / Router / ZeroTier sigue activo y no depende del VPS de FG Link.</string>
+    <string name="controller_route_vps_direct">FG Link VPS Direct — puerta de enlace en la nube opcional</string>
+    <string name="controller_route_vps_locked">VPS Direct está preparado, pero bloqueado para uso público hasta terminar las pruebas MTTL directas. Sigue usando Router / teléfono / ZeroTier.</string>
+    <string name="controller_route_vps_ready">La prueba de VPS Direct está habilitada. Al seleccionarla, se resolverá la IPv4 pública del VPS de FG Link antes de configurar el enchufe.</string>
+    <string name="controller_route_local_restored">Ruta de controlador local restaurada. LAN / Router / ZeroTier siguen disponibles.</string>
+    <string name="controller_route_vps_resolving">Resolviendo la IPv4 pública del VPS de FG Link antes de conectarse al Wi-Fi de configuración del enchufe…</string>
+    <string name="controller_route_vps_resolved">Controlador VPS Direct preparado: %1$s. Esta ruta es independiente de la ruta Local / ZeroTier guardada.</string>
+    <string name="controller_route_vps_resolve_failed">No se pudo preparar VPS Direct: %1$s</string>
+    <string name="cloud_create_account">Crear cuenta VPS</string>
+    <string name="cloud_create_account_locked">Crear cuenta VPS — después de las pruebas</string>
+    <string name="cloud_connect_vps_pilot">Conectar API de prueba</string>
+    <string name="cloud_self_registration_locked_status">La creación de cuenta VPS desde la app está preparada, pero desactivada hasta terminar las pruebas. El control local y ZeroTier no se ven afectados.</string>
+    <string name="cloud_self_registration_creating">Creando la cuenta VPS y vinculando este teléfono…</string>
+    <string name="cloud_self_registration_ready">Cuenta VPS creada y conectada. Local / ZeroTier sigue disponible como respaldo independiente.</string>
+
 </resources>
