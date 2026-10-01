@@ -52,7 +52,7 @@ public enum Wire {
         let octets = controllerIPv4.split(separator: ".", omittingEmptySubsequences: false)
         guard octets.count == 4, octets.allSatisfy({ matches(String($0), "^[0-9]{1,3}$") && (0...255).contains(Int($0) ?? -1) }),
               !ssid.isEmpty, ssid.utf8.count <= 32, password.utf8.count <= 63,
-              ![ssid, password].contains(where: { $0.contains(":") || $0.contains("\r") || $0.contains("\n") || $0.contains("\0") })
+              ![ssid, password].contains(where: { $0.utf8.contains(where: { [0, 10, 13, 58].contains($0) }) })
         else { throw LinkError.invalidCommand }
         return ["up:ip:\(controllerIPv4)", "up:connect:\(ssid):\(password)", "up:reboot:0"]
     }
