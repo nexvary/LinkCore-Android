@@ -1,0 +1,50 @@
+name: FG Link iOS
+on:
+  pull_request:
+    paths: ['ios/**', '!ios/README.md', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - name: Build core and iOS simulator application
+        run: bash ios/scripts/test-simulator.sh --build-only
+      - name: TCP integration and Arabic/English UI tests
+        run: bash ios/scripts/test-simulator.sh --test-only
+      - name: Export retained UI screenshots
+        if: always()
+        run: |
+          if [[ -d ios/build/SimulatorTests.xcresult ]]; then
+            xcrun xcresulttool export attachments --path ios/build/SimulatorTests.xcresult --output-path ios/build/Screenshots
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FG-Link-iOS-2.1.2-Screenshots
+          path: |
+            ios/build/Screenshots/**/*.png
+            ios/build/iPhone.png
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FG-Link-iOS-2.1.2-App
+          path: ios/build/Build/Products/Debug-iphonesimulator/FGLink.app
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FG-Link-iOS-2.1.2-Test-results
+          path: |
+            ios/build/SimulatorTests.xcresult
+            ios/build/Build.log
+            ios/build/Tests.log
+          if-no-files-found: warn

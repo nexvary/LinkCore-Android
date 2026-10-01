@@ -1,0 +1,73 @@
+name: FGLink
+options:
+  deploymentTarget:
+    iOS: '16.0'
+packages:
+  FGLinkCore:
+    path: .
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '2.1.2'
+    CURRENT_PROJECT_VERSION: '47'
+    TARGETED_DEVICE_FAMILY: '1,2'
+    CODE_SIGN_STYLE: Automatic
+targets:
+  FGLink:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes: [Info.plist, FGLink.entitlements]
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: FG Link
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSLocalNetworkUsageDescription: FG Link connects to your power strips on your local Wi-Fi network. يتصل FG Link بالمشتركات على شبكة Wi-Fi المحلية.
+        NSMicrophoneUsageDescription: Speak an outlet command for review before sending. أدخل أمرًا صوتيًا لمراجعته قبل إرساله.
+        NSSpeechRecognitionUsageDescription: Convert your voice into a command you confirm before execution. تحويل الصوت إلى أمر تؤكده قبل التنفيذ.
+        CFBundleLocalizations: [ar, en]
+    entitlements:
+      path: App/FGLink.entitlements
+      properties:
+        com.apple.developer.networking.HotspotConfiguration: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.fgmachines.fglink
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    dependencies:
+      - package: FGLinkCore
+  FGLinkUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.fgmachines.fglink.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FGLink
+  FGLinkIntegrationTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: IntegrationTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.fgmachines.fglink.integrationtests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FGLink
+      - package: FGLinkCore
+schemes:
+  FGLink:
+    build:
+      targets:
+        FGLink: all
+    test:
+      targets: [FGLinkUITests, FGLinkIntegrationTests]
