@@ -62,7 +62,7 @@ struct ContentView: View {
                                         Text(strip.mac).font(.system(.callout, design: .monospaced)).minimumScaleFactor(0.6).lineLimit(1).environment(\.layoutDirection, .leftToRight)
                                         Text(strip.connected ? model.t("متصل", "Online") : model.t("غير متصل", "Offline")).foregroundStyle(strip.connected ? green : .secondary)
                                     }.padding(16).frame(maxWidth: .infinity, alignment: .leading).card()
-                                }.simultaneousGesture(TapGesture().onEnded { model.selectedMAC = strip.mac })
+                                }.simultaneousGesture(TapGesture().onEnded { model.selectedMAC = strip.mac }).accessibilityIdentifier("strip\(strip.mac)")
                             }
                         }
                         if !model.message.isEmpty { Text(model.message).foregroundStyle(cyan).accessibilityIdentifier("statusMessage") }
