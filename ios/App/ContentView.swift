@@ -123,7 +123,7 @@ struct StripDetail: View {
                             Image(systemName: "powerplug.fill").font(.title2).foregroundStyle(outlet?.relay == "on" ? green : cyan)
                             Text(model.t("المخرج \(channel)", "Outlet \(channel)")).font(.title3.bold())
                             Spacer()
-                            Text(state(outlet?.relay)).foregroundStyle(.secondary)
+                            Text(state(outlet?.relay)).foregroundStyle(.secondary).accessibilityIdentifier("outlet\(channel)State")
                         }
                         HStack {
                             telemetry(outlet?.powerW, suffix: "W"); Spacer()
