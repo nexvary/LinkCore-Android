@@ -5,12 +5,12 @@ import FGLinkCore
 
 final class LocalControllerTests: XCTestCase {
     func testActualTCPHandshakeAndAcknowledgedControl() async throws {
-        let controller = LocalController()
+        let controller = LocalController(port: 31086)
         let identified = expectation(description: "Strip authenticated and telemetry received")
         let sent = expectation(description: "Outlet command received")
         let mac = "2CE032C7A520"
         let queue = DispatchQueue(label: "fg.fixture.strip")
-        let fakeStrip = NWConnection(host: "127.0.0.1", port: 10086, using: .tcp)
+        let fakeStrip = NWConnection(host: "127.0.0.1", port: 31086, using: .tcp)
         var buffer = FrameBuffer()
         var identityFulfilled = false
         controller.onUpdate = { rows in
