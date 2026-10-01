@@ -143,9 +143,10 @@ public actor DirectClient {
     public func emailSettings() async throws -> EmailSettings {
         try JSONDecoder().decode(EmailSettings.self, from: await request("GET", "/api/v1/direct/email-settings"))
     }
-    public func saveEmail(_ value: EmailSettings) async throws {
+    public func saveEmail(_ value: EmailSettings) async throws -> EmailSettings {
         guard (100...10000).contains(value.powerW), (30...120).contains(value.temperatureC) else { throw LinkError.invalidCommand }
-        _ = try await request("PUT", "/api/v1/direct/email-settings", body: JSONEncoder().encode(value))
+        var payload = value; payload.smtpReady = nil
+        return try JSONDecoder().decode(EmailSettings.self, from: await request("PUT", "/api/v1/direct/email-settings", body: JSONEncoder().encode(payload)))
     }
     public func testEmail() async throws {
         struct Reply: Decodable { let status: String }
