@@ -47,7 +47,7 @@ final class LinkModel: ObservableObject {
         guard value != route else { return }
         epoch += 1; route = value; local.stop()
         let old = client; client = nil; privateAPI = nil; if let old { Task { await old.logout() } }
-        devices = []; selectedMAC = nil; signedIn = false; pendingMAC = nil; busy = false
+        devices = []; selectedMAC = nil; signedIn = false; pendingMAC = nil; busy = false; history = []
         emailLoaded = false; email = EmailSettings(); message = ""
         if visible && value == .local { local.start() }
     }
@@ -65,7 +65,7 @@ final class LinkModel: ObservableObject {
     func logout() async {
         epoch += 1; let old = client; client = nil; signedIn = false
         privateAPI = nil
-        devices = []; selectedMAC = nil; emailLoaded = false; email = EmailSettings(); pendingMAC = nil
+        devices = []; selectedMAC = nil; emailLoaded = false; email = EmailSettings(); pendingMAC = nil; busy = false; history = []
         if let old { await old.logout() }
     }
     func connectShare(_ code: String) async {
@@ -129,16 +129,21 @@ final class LinkModel: ObservableObject {
     func loadEmail() async {
         guard let client else { return }
         let current = epoch
-        do { let result = try await client.emailSettings(); guard current == epoch else { return }; email = result; emailLoaded = true }
+        do { let result = try await client.emailSettings(); guard current == epoch else { return }; email = result; if email.smtpReady != true { email.enabled = false }; emailLoaded = true }
         catch { if current == epoch { message = error.localizedDescription } }
     }
     func saveEmail(test: Bool = false) async {
         guard let client, emailLoaded, !busy else { return }
-        busy = true; defer { busy = false }
+        busy = true; let current = epoch
+        defer { if current == epoch { busy = false } }
         do {
-            if test { try await client.testEmail() } else { try await client.saveEmail(email) }
+            let result = try await client.saveEmail(email)
+            guard current == epoch else { return }
+            email = result
+            if test { try await client.testEmail() }
+            guard current == epoch else { return }
             message = t("تم بنجاح", "Completed")
-        } catch { message = error.localizedDescription }
+        } catch { if current == epoch { message = error.localizedDescription } }
     }
     private func accept(_ rows: [Strip]) {
         devices = rows
