@@ -35,6 +35,7 @@ final class CoreTests: XCTestCase {
         XCTAssertThrowsError(try Wire.command(outlet: 5, on: true))
         XCTAssertEqual(try Wire.setupPassword("TONLY_TAP_2C7A520"), "LGU_2C7A520")
         XCTAssertThrowsError(try Wire.setupCommands(ssid: "wifi\r\nup:reboot:0", password: "secret", controllerIPv4: "192.168.1.2"))
+        XCTAssertThrowsError(try Wire.setupCommands(ssid: "wifi\r\nname", password: "secret", controllerIPv4: "192.168.1.2"))
         XCTAssertThrowsError(try Wire.setupCommands(ssid: "wifi", password: "a:b", controllerIPv4: "192.168.1.2"))
         XCTAssertThrowsError(try Wire.setupCommands(ssid: "wifi", password: "secret", controllerIPv4: "999.1.1.1"))
     }
