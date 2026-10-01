@@ -76,7 +76,7 @@ public struct FrameBuffer {
             bytes.removeSubrange(...newline)
             let assembled = (partial ?? "") + text
             guard assembled.utf8.count <= 8192 else { throw LinkError.invalidResponse }
-            if assembled.hasPrefix("up:getinfo:"), Wire.telemetry(assembled) == nil {
+            if assembled.hasPrefix("up:getinfo:"), assembled != Wire.getInfo, Wire.telemetry(assembled) == nil {
                 partial = assembled
             } else {
                 partial = nil; frames.append(assembled)
