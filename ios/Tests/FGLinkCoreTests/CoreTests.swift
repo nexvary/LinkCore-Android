@@ -8,6 +8,8 @@ import FoundationNetworking
 final class CoreTests: XCTestCase {
     let mac = "2CE032C7A520"
     func testIdentificationRejectsWrongModelAndMismatchedIdentity() {
+        XCTAssertFalse(Wire.validMAC(mac + "\n"))
+        XCTAssertFalse(Wire.matches("fgd_" + String(repeating: "a", count: 43) + "\n", "^fgd_[A-Za-z0-9_-]{43}$"))
         XCTAssertEqual(Wire.boot("up:bootinfo:lgutap;\(mac);\(mac);1.0.66;connect")?.mac, mac)
         XCTAssertNil(Wire.boot("up:bootinfo:other;\(mac);\(mac);1.0.66;connect"))
         XCTAssertNil(Wire.boot("up:bootinfo:lgutap;\(mac);AAAAAAAAAAAA;1.0.66;connect"))
