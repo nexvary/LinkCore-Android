@@ -21,6 +21,7 @@ final class LocalController: @unchecked Sendable {
     private var pending: [String: (channel: Int, on: Bool, completion: (Result<Void, Error>) -> Void, deadline: Date)] = [:]
     var onUpdate: (([Strip]) -> Void)?
     var onError: ((Error) -> Void)?
+    var onReady: (() -> Void)?
 
     func start() {
         queue.async { [self] in
@@ -32,6 +33,7 @@ final class LocalController: @unchecked Sendable {
                 listener = value
                 value.newConnectionHandler = { [weak self] connection in self?.accept(connection) }
                 value.stateUpdateHandler = { [weak self] state in
+                    if case .ready = state { self?.onReady?() }
                     if case .failed(let error) = state { self?.onError?(error); self?.stop() }
                 }
                 value.start(queue: queue)
