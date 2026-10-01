@@ -79,8 +79,9 @@ public struct EmailSettings: Codable {
     public var enabled: Bool
     public var powerW: Int
     public var temperatureC: Int
+    public var smtpReady: Bool? = nil
     public init(email: String = "", enabled: Bool = false, powerW: Int = 3000, temperatureC: Int = 70) {
         self.email = email; self.enabled = enabled; self.powerW = powerW; self.temperatureC = temperatureC
     }
-    enum CodingKeys: String, CodingKey { case email, enabled, powerW = "power_w", temperatureC = "temperature_c" }
+    enum CodingKeys: String, CodingKey { case email, enabled, powerW = "power_w", temperatureC = "temperature_c", smtpReady = "smtp_ready" }
 }
