@@ -25,6 +25,7 @@ final class CoreTests: XCTestCase {
     }
     func testChunkedAndMultilineFirmwareTelemetry() throws {
         var buffer = FrameBuffer()
+        XCTAssertEqual(try buffer.append(Data((Wire.getInfo + "\r\n").utf8)), [Wire.getInfo])
         let frame = telemetry()
         let split = frame.index(frame.startIndex, offsetBy: 70)
         XCTAssertTrue(try buffer.append(Data((String(frame[..<split]) + "\r\n").utf8)).isEmpty)
@@ -92,6 +93,11 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(devices.first?.mac, mac)
         let result = try await client.setOutlet(mac: mac, outlet: 1, on: true)
         XCTAssertEqual(result, "confirmed")
+        let settings = try await client.emailSettings()
+        XCTAssertEqual(settings.smtpReady, true)
+        let saved = try await client.saveEmail(settings)
+        XCTAssertEqual(saved.email, "customer@example.com")
+        try await client.testEmail()
         await client.logout()
         do { _ = try await client.devices(); XCTFail("Logged out session must not work") }
         catch { XCTAssertTrue(error is LinkError) }
@@ -115,6 +121,24 @@ private final class StubProtocol: URLProtocol, @unchecked Sendable {
         } else if !authorized { status = 401; json = "{}" }
         else if path.hasSuffix("/devices") {
             json = "{\"source\":\"direct-vps\",\"devices\":[{\"mac\":\"2CE032C7A520\",\"connected\":true,\"control_enabled\":true,\"allowed_outlets\":[1],\"outlets\":[{\"channel\":1,\"relay\":\"off\"}]}]}"
+        } else if path.hasSuffix("/email-settings/test") {
+            json = "{\"status\":\"sent\"}"
+        } else if path.hasSuffix("/email-settings") {
+            if request.httpMethod == "PUT" {
+                var data = request.httpBody ?? Data()
+                if let stream = request.httpBodyStream {
+                    stream.open(); defer { stream.close() }
+                    var bytes = [UInt8](repeating: 0, count: 4096)
+                    while stream.hasBytesAvailable {
+                        let count = stream.read(&bytes, maxLength: bytes.count)
+                        if count <= 0 { break }; data.append(contentsOf: bytes.prefix(count))
+                    }
+                }
+                let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+                XCTAssertEqual(body?["email"] as? String, "customer@example.com")
+                XCTAssertNil(body?["smtp_ready"], "SMTP readiness is a read-only server field")
+            }
+            json = "{\"smtp_ready\":true,\"email\":\"customer@example.com\",\"enabled\":false,\"power_w\":3000,\"temperature_c\":70}"
         } else { json = "{\"source\":\"direct-vps\",\"status\":\"confirmed\"}" }
         let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
