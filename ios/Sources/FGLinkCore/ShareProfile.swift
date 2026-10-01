@@ -19,7 +19,7 @@ public struct ShareProfile {
               c.user == nil, c.password == nil, c.query == nil, c.fragment == nil, ["", "/"].contains(c.path),
               c.port == nil || (1...65535).contains(c.port!), let host = c.host,
               Self.isPrivateIP(host), let url = c.url, !secret.isEmpty,
-              !secret.contains("\r"), !secret.contains("\n"),
+              secret.utf8.allSatisfy({ $0 > 32 && $0 < 127 }),
               ["VIEW", "CONTROL", "ADMIN"].contains(parts[3]), scope.isEmpty || Wire.validMAC(scope)
         else { throw LinkError.invalidEndpoint }
         endpoint = url; token = secret; role = parts[3]; scopeMAC = scope.uppercased()
