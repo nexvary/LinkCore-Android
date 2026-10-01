@@ -3,7 +3,9 @@ import Foundation
 public enum Wire {
     public static let getInfo = "up:getinfo:all"
     public static func matches(_ text: String, _ pattern: String) -> Bool {
-        text.range(of: pattern, options: .regularExpression) != nil
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return false }
+        return match.range.location == 0 && match.range.length == text.utf16.count
     }
     public static func validMAC(_ mac: String) -> Bool { matches(mac, "^[0-9A-Fa-f]{12}$") }
     public static func command(outlet: Int, on: Bool) throws -> String {
