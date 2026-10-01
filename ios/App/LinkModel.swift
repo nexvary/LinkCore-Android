@@ -15,8 +15,12 @@ final class LinkModel: ObservableObject {
     @Published var emailLoaded = false
     @Published var pendingMAC: String?
     @Published var history: [Sample] = []
-    @AppStorage("fg.language") var language = "ar"
-    @AppStorage("fg.server") var server = DirectClient.defaultServer
+    @Published var language = UserDefaults.standard.string(forKey: "fg.language") ?? "ar" {
+        didSet { UserDefaults.standard.set(language, forKey: "fg.language") }
+    }
+    @Published var server = UserDefaults.standard.string(forKey: "fg.server") ?? DirectClient.defaultServer {
+        didSet { UserDefaults.standard.set(server, forKey: "fg.server") }
+    }
     private let local = LocalController()
     private var client: DirectClient?
     private var privateAPI: PrivateAPI?
