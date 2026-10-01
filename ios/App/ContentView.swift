@@ -260,13 +260,16 @@ struct NotificationsView: View {
         Form {
             if model.route == .vps && model.signedIn {
                 Section(model.t("تنبيهات البريد", "Email alerts")) {
-                    Toggle(model.t("تفعيل التنبيهات", "Enable alerts"), isOn: $model.email.enabled)
+                    Toggle(model.t("تفعيل التنبيهات", "Enable alerts"), isOn: $model.email.enabled).disabled(model.email.smtpReady != true)
                     TextField(model.t("البريد الإلكتروني", "Email"), text: $model.email.email).keyboardType(.emailAddress).textInputAutocapitalization(.never)
                     Stepper("\(model.t("القدرة", "Power")): \(model.email.powerW) W", value: $model.email.powerW, in: 100...10000, step: 100)
                     Stepper("\(model.t("الحرارة", "Temperature")): \(model.email.temperatureC) °C", value: $model.email.temperatureC, in: 30...120)
                     Button(model.t("حفظ", "Save")) { Task { await model.saveEmail() } }
-                    Button(model.t("إرسال رسالة اختبار", "Send test email")) { Task { await model.saveEmail(test: true) } }
+                    Button(model.t("إرسال رسالة اختبار", "Send test email")) { Task { await model.saveEmail(test: true) } }.disabled(model.email.smtpReady != true)
                 }.disabled(model.busy || !model.emailLoaded)
+                if model.emailLoaded && model.email.smtpReady != true {
+                    Text(model.t("خدمة إرسال البريد غير جاهزة على الخادم.", "Email delivery is not configured on the server."))
+                }
                 Button(model.t("تحميل الإعدادات", "Load settings")) { Task { await model.loadEmail() } }
             } else { Text(model.t("سجّل الدخول إلى VPS لإعداد تنبيهات البريد.", "Sign into VPS to configure email alerts.")) }
             Text(model.message).foregroundStyle(cyan)
