@@ -48,7 +48,7 @@ final class LinkModel: ObservableObject {
         epoch += 1; route = value; local.stop()
         let old = client; client = nil; privateAPI = nil; if let old { Task { await old.logout() } }
         devices = []; selectedMAC = nil; signedIn = false; pendingMAC = nil; busy = false
-        emailLoaded = false; message = ""
+        emailLoaded = false; email = EmailSettings(); message = ""
         if visible && value == .local { local.start() }
     }
     func login(username: String, password: String) async {
@@ -65,7 +65,7 @@ final class LinkModel: ObservableObject {
     func logout() async {
         epoch += 1; let old = client; client = nil; signedIn = false
         privateAPI = nil
-        devices = []; selectedMAC = nil; emailLoaded = false; pendingMAC = nil
+        devices = []; selectedMAC = nil; emailLoaded = false; email = EmailSettings(); pendingMAC = nil
         if let old { await old.logout() }
     }
     func connectShare(_ code: String) async {
@@ -145,8 +145,10 @@ final class LinkModel: ObservableObject {
         if selectedMAC == nil || !rows.contains(where: { $0.mac == selectedMAC }) { selectedMAC = rows.first?.mac }
         // Session history records real telemetry; never fabricated samples.
         for strip in rows where strip.connected {
+            let powers = strip.outlets.compactMap(\.powerW)
+            guard !powers.isEmpty else { continue }
             if let last = history.last(where: { $0.mac == strip.mac }), Date().timeIntervalSince(last.date) < 10 { continue }
-            history.append(Sample(mac: strip.mac, date: Date(), watts: strip.outlets.compactMap(\.powerW).reduce(0, +)))
+            history.append(Sample(mac: strip.mac, date: Date(), watts: powers.reduce(0, +)))
         }
         if history.count > 1440 { history.removeFirst(history.count - 1440) }
     }
