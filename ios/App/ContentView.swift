@@ -58,7 +58,7 @@ struct ContentView: View {
                             ForEach(model.devices) { strip in
                                 NavigationLink { StripDetail(mac: strip.mac) } label: {
                                     VStack(alignment: .leading, spacing: 12) {
-                                        HStack { Image(systemName: "powerstrip.fill").font(.title); Spacer(); Circle().fill(strip.connected ? green : .gray).frame(width: 10, height: 10) }
+                                        HStack { Image(systemName: "powerplug.fill").font(.title); Spacer(); Circle().fill(strip.connected ? green : .gray).frame(width: 10, height: 10) }
                                         Text(strip.mac).font(.system(.callout, design: .monospaced)).minimumScaleFactor(0.6).lineLimit(1).environment(\.layoutDirection, .leftToRight)
                                         Text(strip.connected ? model.t("متصل", "Online") : model.t("غير متصل", "Offline")).foregroundStyle(strip.connected ? green : .secondary)
                                     }.padding(16).frame(maxWidth: .infinity, alignment: .leading).card()
@@ -72,7 +72,7 @@ struct ContentView: View {
                     }.padding(18)
                 }.background(navy).navigationTitle(model.t("الرئيسية", "Home"))
                     .toolbar { languageButton }
-            }.tabItem { Label(model.t("مشتركاتي", "My strips"), systemImage: "powerstrip.fill") }
+            }.tabItem { Label(model.t("مشتركاتي", "My strips"), systemImage: "powerplug.fill") }
             NavigationStack { SetupView().toolbar { languageButton } }.tabItem { Label(model.t("إضافة", "Add"), systemImage: "plus.circle.fill") }
             NavigationStack { NotificationsView().toolbar { languageButton } }.tabItem { Label(model.t("التنبيهات", "Alerts"), systemImage: "bell.fill") }
             NavigationStack { AboutView().toolbar { languageButton } }.tabItem { Label(model.t("عنا", "About"), systemImage: "info.circle.fill") }
