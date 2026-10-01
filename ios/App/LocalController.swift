@@ -12,6 +12,8 @@ final class LocalController: @unchecked Sendable {
         init(_ connection: NWConnection) { self.connection = connection }
     }
     private let queue = DispatchQueue(label: "fg.link.local")
+    private let port: UInt16
+    init(port: UInt16 = 10086) { self.port = port }
     private var listener: NWListener?
     private var peers: [ObjectIdentifier: Peer] = [:]
     private var strips: [String: Strip] = [:]
@@ -26,7 +28,7 @@ final class LocalController: @unchecked Sendable {
             do {
                 let parameters = NWParameters.tcp
                 parameters.allowLocalEndpointReuse = true
-                let value = try NWListener(using: parameters, on: 10086)
+                let value = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: port)!)
                 listener = value
                 value.newConnectionHandler = { [weak self] connection in self?.accept(connection) }
                 value.stateUpdateHandler = { [weak self] state in
