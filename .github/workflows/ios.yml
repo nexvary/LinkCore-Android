@@ -1,7 +1,7 @@
 name: FG Link iOS
 on:
   pull_request:
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', '!ios/README.md', '.github/workflows/ios.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,8 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
-      - name: Core, TCP integration and Arabic/English UI tests
-        run: bash ios/scripts/test-simulator.sh
+      - name: Build core and iOS simulator application
+        run: bash ios/scripts/test-simulator.sh --build-only
+      - name: TCP integration and Arabic/English UI tests
+        run: bash ios/scripts/test-simulator.sh --test-only
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -24,5 +26,7 @@ jobs:
           path: |
             ios/build/SimulatorTests.xcresult
             ios/build/iPhone.png
+            ios/build/Build.log
+            ios/build/Tests.log
             ios/build/Build/Products/Debug-iphonesimulator/FGLink.app
           if-no-files-found: warn
