@@ -32,7 +32,7 @@ final class FGLinkUITests: XCTestCase {
         let fixture = SimulatedStrip()
         fixture.start()
         defer { fixture.stop() }
-        let card = app.staticTexts["AABBCCDDEE01"].firstMatch
+        let card = app.buttons["stripAABBCCDDEE01"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
         let on = app.buttons["outlet1On"]
@@ -46,7 +46,10 @@ final class FGLinkUITests: XCTestCase {
         waitForExpectations(timeout: 5)
         XCTAssertTrue(fixture.isOn)
         attach(app, "Simulated strip — confirmed outlet controls")
-        app.buttons["outlet1Off"].tap()
+        let off = app.buttons["outlet1Off"]
+        expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: off)
+        waitForExpectations(timeout: 5)
+        off.tap()
         expectation(for: NSPredicate(format: "label == %@", "Off"), evaluatedWith: state)
         waitForExpectations(timeout: 5)
         XCTAssertFalse(fixture.isOn)
@@ -77,7 +80,7 @@ private final class SimulatedStrip: @unchecked Sendable {
             case .ready:
                 self.send("up:bootinfo:lgutap;AABBCCDDEE01;AABBCCDDEE01;1.0.66;connect", peer)
                 self.receive(peer)
-            case .failed:
+            case .failed, .waiting:
                 peer.cancel(); self.connection = nil
                 self.queue.asyncAfter(deadline: .now() + 0.25) { self.connect() }
             default: break
