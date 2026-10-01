@@ -1,0 +1,6 @@
+.build/
+build/
+FGLink.xcodeproj/
+.swiftpm/
+App/Info.plist
+App/FGLink.entitlements
