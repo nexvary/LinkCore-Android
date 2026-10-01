@@ -6,6 +6,9 @@ import FGLinkCore
 final class LocalControllerTests: XCTestCase {
     func testActualTCPHandshakeAndAcknowledgedControl() async throws {
         let controller = LocalController(port: 31086)
+        let listening = expectation(description: "TCP listener ready")
+        controller.onReady = { listening.fulfill() }
+        controller.onError = { XCTFail("Listener failed: \($0)") }
         let identified = expectation(description: "Strip authenticated and telemetry received")
         let sent = expectation(description: "Outlet command received")
         let mac = "2CE032C7A520"
@@ -33,8 +36,7 @@ final class LocalControllerTests: XCTestCase {
                 if !complete && error == nil { read() }
             }
         }
-        // Give the listener time to bind before the simulated strip initiates its connection.
-        try await Task.sleep(nanoseconds: 500_000_000)
+        await fulfillment(of: [listening], timeout: 10)
         fakeStrip.stateUpdateHandler = { state in
             if case .ready = state { send("up:bootinfo:lgutap;\(mac);\(mac);1.0.66;connect"); read() }
         }
